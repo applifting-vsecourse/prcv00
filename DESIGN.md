@@ -40,6 +40,13 @@ Use the scale only: `1, 2, 3, 4, 6, 8, 12, 16` (Tailwind units — 4px…64px). 
 - **Shadows are rare.** Only for things that genuinely float above the page — dropdowns, dialogs, toasts. Cards and inputs do not get shadows.
 - Radius comes from the token (`rounded-lg`/`rounded-md`). Never mix radii in one component.
 
+## Icons
+
+- **Icons come from `lucide-react`, and nowhere else.** No second icon library, no hand-drawn inline `<svg>`, no icon fonts, and no emoji standing in for icons. If Lucide has no exact match, pick the closest Lucide icon rather than importing another set.
+- Icons inherit colour from the text (`currentColor`). Never colour an icon directly — colour its parent with a semantic class.
+- Size icons with `size-*` from the scale (`size-3` inline with `text-xs`, `size-4` default, `size-5` for standalone indicators).
+- Decorative icons next to a visible label get `aria-hidden="true"`; icon-only controls get an `aria-label` (see Accessibility).
+
 ## Forms
 
 - Every input has a visible `<label>`. Placeholders are examples, never labels.
