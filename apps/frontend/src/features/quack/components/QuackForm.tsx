@@ -1,3 +1,4 @@
+import { useId } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Loader2 } from "lucide-react"
 import { useForm, useWatch } from "react-hook-form"
@@ -14,8 +15,11 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Textarea } from "@/components/ui/textarea"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { cn } from "@/lib/utils"
 
+import { QUACK_MOODS, quackMoodSchema } from "@/features/quack/api/quackSchemas"
+import { moodLabels } from "@/features/quack/components/moods"
 import { useAddQuack } from "@/features/quack/hooks/useAddQuack"
 
 // Mirrors the server-side DTO (MaxLength(280)) so the user is told before
@@ -28,6 +32,7 @@ const schema = z.object({
     .trim()
     .min(1, "Write something first")
     .max(MAX_LENGTH, `Keep it under ${MAX_LENGTH} characters`),
+  mood: quackMoodSchema.nullable(),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -36,16 +41,17 @@ type QuackFormProps = { className?: string }
 
 export function QuackForm({ className }: QuackFormProps) {
   const addQuack = useAddQuack()
+  const moodLabelId = useId()
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { text: "" },
+    defaultValues: { text: "", mood: null },
   })
 
   const text = useWatch({ control: form.control, name: "text" })
   const length = text?.length ?? 0
 
   const handleSubmit = (values: FormValues) => {
-    addQuack.mutate({ text: values.text }, { onSuccess: () => form.reset() })
+    addQuack.mutate({ text: values.text, mood: values.mood }, { onSuccess: () => form.reset() })
   }
 
   return (
@@ -80,23 +86,65 @@ export function QuackForm({ className }: QuackFormProps) {
           )}
         />
 
-        <div className="flex items-center justify-end gap-3">
-          <span
-            className={cn(
-              "text-sm",
-              length > MAX_LENGTH ? "text-destructive" : "text-muted-foreground",
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <FormField
+            control={form.control}
+            name="mood"
+            render={({ field }) => (
+              <FormItem className="flex items-center gap-3">
+                <FormLabel id={moodLabelId}>Mood</FormLabel>
+                <FormControl>
+                  {/* Single-select that can be cleared: clicking the active
+                      icon again emits "", which the form stores as null. */}
+                  <ToggleGroup
+                    type="single"
+                    variant="outline"
+                    size="sm"
+                    role="radiogroup"
+                    aria-labelledby={moodLabelId}
+                    value={field.value ?? ""}
+                    onValueChange={(value) =>
+                      field.onChange(value ? quackMoodSchema.parse(value) : null)
+                    }
+                    disabled={addQuack.isPending}
+                  >
+                    {QUACK_MOODS.map((mood) => {
+                      const { icon: Icon, label } = moodLabels[mood]
+                      return (
+                        <ToggleGroupItem
+                          key={mood}
+                          value={mood}
+                          aria-label={label}
+                          title={label}
+                        >
+                          <Icon aria-hidden="true" />
+                        </ToggleGroupItem>
+                      )
+                    })}
+                  </ToggleGroup>
+                </FormControl>
+              </FormItem>
             )}
-          >
-            {length}/{MAX_LENGTH}
-          </span>
-          <Button
-            type="submit"
-            size="sm"
-            disabled={addQuack.isPending}
-          >
-            {addQuack.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
-            Quack
-          </Button>
+          />
+
+          <div className="flex items-center gap-3">
+            <span
+              className={cn(
+                "text-sm",
+                length > MAX_LENGTH ? "text-destructive" : "text-muted-foreground",
+              )}
+            >
+              {length}/{MAX_LENGTH}
+            </span>
+            <Button
+              type="submit"
+              size="sm"
+              disabled={addQuack.isPending}
+            >
+              {addQuack.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
+              Quack
+            </Button>
+          </div>
         </div>
       </form>
     </Form>
