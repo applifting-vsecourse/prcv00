@@ -26,7 +26,35 @@ describe('QuacksService', () => {
 
     await expect(service.getQuacks()).resolves.toEqual(quacks);
     expect(repository.getQuacks).toHaveBeenCalledTimes(1);
+    expect(repository.getQuacks).toHaveBeenCalledWith({ search: undefined });
   });
+
+  it.each([
+    ['duck', 'duck'],
+    ['  duck  ', 'duck'],
+    ['@alice', 'alice'],
+    ['@@alice', '@alice'],
+    ['pond duck', 'pond duck'],
+  ])('searches for %j as %j', async (input, expected) => {
+    const repository = mock<QuackRepository>();
+    repository.getQuacks.mockResolvedValue([]);
+
+    await new QuacksService(repository).getQuacks({ search: input });
+
+    expect(repository.getQuacks).toHaveBeenCalledWith({ search: expected });
+  });
+
+  it.each(['', '   ', '@', ' @ '])(
+    'treats %j as no search (full feed)',
+    async (input) => {
+      const repository = mock<QuackRepository>();
+      repository.getQuacks.mockResolvedValue([]);
+
+      await new QuacksService(repository).getQuacks({ search: input });
+
+      expect(repository.getQuacks).toHaveBeenCalledWith({ search: undefined });
+    },
+  );
 
   it('creates a quack owned by the signed-in user', async () => {
     const created = aQuack({ id: 'q2', text: 'hello' });
