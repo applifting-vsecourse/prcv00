@@ -33,7 +33,7 @@ const submitted = async () => {
 }
 
 describe("QuackForm", () => {
-  it("offers every mood as a labelled emoji, none picked by default", () => {
+  it("offers every mood as a labelled icon, none picked by default", () => {
     renderForm()
 
     const group = screen.getByRole("radiogroup", { name: "Mood" })
@@ -63,7 +63,7 @@ describe("QuackForm", () => {
     expect(await submitted()).toEqual({ text: "grr", mood: "angry" })
   })
 
-  it("clears the mood when the picked emoji is clicked again", async () => {
+  it("clears the mood when the picked icon is clicked again", async () => {
     renderForm()
 
     await userEvent.type(screen.getByLabelText("New quack"), "never mind")

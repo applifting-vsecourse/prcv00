@@ -95,7 +95,7 @@ export function QuackForm({ className }: QuackFormProps) {
                 <FormLabel id={moodLabelId}>Mood</FormLabel>
                 <FormControl>
                   {/* Single-select that can be cleared: clicking the active
-                      emoji again emits "", which the form stores as null. */}
+                      icon again emits "", which the form stores as null. */}
                   <ToggleGroup
                     type="single"
                     variant="outline"
@@ -108,17 +108,19 @@ export function QuackForm({ className }: QuackFormProps) {
                     }
                     disabled={addQuack.isPending}
                   >
-                    {QUACK_MOODS.map((mood) => (
-                      <ToggleGroupItem
-                        key={mood}
-                        value={mood}
-                        aria-label={moodLabels[mood].label}
-                        title={moodLabels[mood].label}
-                        className="text-base"
-                      >
-                        {moodLabels[mood].emoji}
-                      </ToggleGroupItem>
-                    ))}
+                    {QUACK_MOODS.map((mood) => {
+                      const { icon: Icon, label } = moodLabels[mood]
+                      return (
+                        <ToggleGroupItem
+                          key={mood}
+                          value={mood}
+                          aria-label={label}
+                          title={label}
+                        >
+                          <Icon aria-hidden="true" />
+                        </ToggleGroupItem>
+                      )
+                    })}
                   </ToggleGroup>
                 </FormControl>
               </FormItem>
