@@ -57,7 +57,7 @@ describe("QuackList", () => {
   })
 
   describe("while searching", () => {
-    it("shows the result count (AC16)", () => {
+    it("shows the result count (AC14)", () => {
       const { rerender } = render(
         <QuackList
           quacks={[quack()]}
@@ -81,7 +81,7 @@ describe("QuackList", () => {
       expect(screen.queryByText(/match/)).not.toBeInTheDocument()
     })
 
-    it("highlights the term in text, name and username (AC17)", () => {
+    it("highlights the term in text, name and username (AC15)", () => {
       const { container } = render(
         <QuackList
           quacks={[quack({ text: "a caffeinated quack" })]}
@@ -93,7 +93,7 @@ describe("QuackList", () => {
       expect(marks).toEqual(["Caffeinated", "Caffeinated", "caffeinated"])
     })
 
-    it("offers to clear a search with no matches (AC19)", async () => {
+    it("offers to clear a search with no matches (AC17)", async () => {
       const onClearSearch = vi.fn()
       render(
         <QuackList
@@ -110,7 +110,7 @@ describe("QuackList", () => {
       expect(onClearSearch).toHaveBeenCalledOnce()
     })
 
-    it("shows the error, not the no-match state, when the search fails (AC20)", () => {
+    it("shows the error, not the no-match state, when the search fails (AC18)", () => {
       render(
         <QuackList
           quacks={[]}

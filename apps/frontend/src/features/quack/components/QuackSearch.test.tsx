@@ -21,7 +21,7 @@ describe("QuackSearch", () => {
   const type = (value: string) =>
     fireEvent.change(screen.getByLabelText("Search quacks"), { target: { value } })
 
-  it("has a visible label and a 100 character limit (AC11)", () => {
+  it("has a visible label and a 100 character limit (AC10)", () => {
     render(
       <QuackSearch
         value=""
@@ -32,7 +32,7 @@ describe("QuackSearch", () => {
     expect(screen.getByLabelText("Search quacks")).toHaveAttribute("maxlength", "100")
   })
 
-  it("searches once the user stops typing, trimmed (AC8)", () => {
+  it("searches once the user stops typing, trimmed (AC7)", () => {
     const onSearch = vi.fn()
     render(
       <QuackSearch
@@ -51,7 +51,7 @@ describe("QuackSearch", () => {
     expect(onSearch).toHaveBeenCalledExactlyOnceWith("duck")
   })
 
-  it("clears the search when the input is emptied (AC10)", () => {
+  it("clears the search when the input is emptied (AC9)", () => {
     const onSearch = vi.fn()
     render(
       <QuackSearch
@@ -66,7 +66,7 @@ describe("QuackSearch", () => {
     expect(onSearch).toHaveBeenCalledExactlyOnceWith("")
   })
 
-  it("shows a search that changed elsewhere, e.g. Back or Clear search (AC14, AC19)", () => {
+  it("shows a search that changed elsewhere, e.g. Back or Clear search (AC13, AC17)", () => {
     const { rerender } = render(
       <QuackSearch
         value="duck"
@@ -106,7 +106,7 @@ describe("QuackSearch", () => {
     expect(screen.getByLabelText("Search quacks")).toHaveValue("pond ")
   })
 
-  it("announces loading while results are on their way (AC18)", () => {
+  it("announces loading while results are on their way (AC16)", () => {
     render(
       <QuackSearch
         value="duck"

@@ -19,7 +19,7 @@ describe("parseQuacksSearch", () => {
     expect(parseQuacksSearch({ q: true })).toEqual({ q: "true" })
   })
 
-  it("cuts an over-long term to the first 100 characters (AC15)", () => {
+  it("cuts an over-long term from a link to the first 100 characters", () => {
     const long = "a".repeat(SEARCH_MAX_LENGTH) + "b".repeat(50)
     expect(parseQuacksSearch({ q: long })).toEqual({ q: "a".repeat(SEARCH_MAX_LENGTH) })
   })
