@@ -39,7 +39,9 @@ export class QuacksController {
   constructor(private readonly quacksService: QuacksService) {}
 
   @Get()
-  @ApiOperation({ summary: 'List quacks, optionally filtered by a search term' })
+  @ApiOperation({
+    summary: 'List quacks, optionally filtered by a search term',
+  })
   @ApiResponse({ status: 200, type: [QuackResponseDto] })
   @ApiResponse({ status: 400, description: 'Search term too long' })
   @ApiResponse({ status: 401, description: 'Not signed in' })

@@ -1,6 +1,6 @@
+import { useCallback } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
-import { useCallback } from "react"
 
 import { Seo } from "@/components/Seo"
 

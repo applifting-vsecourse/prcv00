@@ -8,7 +8,8 @@ export type QuacksSearchParams = { q?: string }
 // is cut to the limit rather than sent to a server that would reject it.
 export function parseQuacksSearch(search: Record<string, unknown>): QuacksSearchParams {
   const { q } = search
-  const raw = typeof q === "string" || typeof q === "number" || typeof q === "boolean" ? String(q) : ""
+  const raw =
+    typeof q === "string" || typeof q === "number" || typeof q === "boolean" ? String(q) : ""
   const term = raw.slice(0, SEARCH_MAX_LENGTH).trim()
   return term ? { q: term } : {}
 }
