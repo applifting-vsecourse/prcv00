@@ -26,6 +26,14 @@ Need a control that isn't in `src/components/ui/`? Add it with `pnpm dlx shadcn@
 
 The CLI puts `shadow-xs`/`shadow-sm` on inputs, textareas and cards. [`DESIGN.md`](DESIGN.md) keeps shadows for things that genuinely float — dialogs, dropdowns, toasts. Strip them.
 
+### User stories are written for the client
+
+Stories in `docs/stories/` are read by the product owner, not by developers. They say who wants it, what they get and why; acceptance criteria a person can check in the browser with a yes or no; what is out of scope; and what the page shows when there is nothing to show. No endpoints, query params, libraries, component names or code — those belong in the PR description.
+
+### Prisma `contains` does not escape `%` and `_`
+
+It becomes `ILIKE '%term%'` with the term inserted as-is, so a user searching for `%` matches every row. Escape `\`, `%` and `_` before passing user input to `contains`/`startsWith`/`endsWith` (see `escapeLikePattern` in the quack repository).
+
 ### The app is already running
 
 Assume the dev servers are up. If something is listening on the app's ports, that is this application: use it. Don't start a second instance, don't restart it, don't run `pnpm dev`.
