@@ -20,7 +20,9 @@ const mapPrismaQuackToDomain = (
     ? {
         id: quack.user.id,
         name: quack.user.name,
-        username: quack.user.username ?? '',
+        // displayUsername keeps the capitals the author chose; username is
+        // BetterAuth's lowercase lookup copy (and the only one older rows have).
+        username: quack.user.displayUsername ?? quack.user.username ?? '',
       }
     : undefined,
 });
