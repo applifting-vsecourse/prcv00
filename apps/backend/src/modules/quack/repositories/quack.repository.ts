@@ -1,15 +1,23 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
+import { Prisma } from '@/generated/prisma/client';
 import {
-  Prisma,
-  Quack as PrismaQuack,
-  User as PrismaUser,
-} from '@/generated/prisma/client';
+  mapPrismaPollToDomain,
+  pollInclude,
+} from '@/modules/poll/repositories/poll.repository';
 import { Quack, QuackMood } from '@/modules/quack/domain/quack';
 import { Injectable } from '@nestjs/common';
 
-const mapPrismaQuackToDomain = (
-  quack: PrismaQuack & { user?: PrismaUser },
-): Quack => ({
+const quackInclude = (viewerId: string) =>
+  ({
+    user: true,
+    poll: { include: pollInclude(viewerId) },
+  }) as const satisfies Prisma.QuackInclude;
+
+type PrismaQuackWithRelations = Prisma.QuackGetPayload<{
+  include: ReturnType<typeof quackInclude>;
+}>;
+
+const mapPrismaQuackToDomain = (quack: PrismaQuackWithRelations): Quack => ({
   id: quack.id,
   text: quack.text,
   mood: quack.mood,
@@ -25,6 +33,7 @@ const mapPrismaQuackToDomain = (
         username: quack.user.displayUsername ?? quack.user.username ?? '',
       }
     : undefined,
+  poll: quack.poll ? mapPrismaPollToDomain(quack.poll) : null,
 });
 
 // Prisma's `contains` becomes ILIKE '%term%' without escaping the term, so a
@@ -38,6 +47,13 @@ const buildSearchWhere = (pattern: string): Prisma.QuackWhereInput => ({
     { text: { contains: pattern, mode: 'insensitive' } },
     { user: { name: { contains: pattern, mode: 'insensitive' } } },
     { user: { username: { contains: pattern, mode: 'insensitive' } } },
+    {
+      poll: {
+        options: {
+          some: { text: { contains: pattern, mode: 'insensitive' } },
+        },
+      },
+    },
   ],
 });
 
@@ -49,13 +65,17 @@ const buildSearchWhere = (pattern: string): Prisma.QuackWhereInput => ({
 export class QuackRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getQuacks(filter: { search?: string } = {}): Promise<Quack[]> {
+  // viewerId: whose own poll votes to include ("which answer did I pick").
+  async getQuacks(filter: {
+    search?: string;
+    viewerId: string;
+  }): Promise<Quack[]> {
     const where = filter.search
       ? buildSearchWhere(escapeLikePattern(filter.search))
       : undefined;
     const quacks = await this.prisma.quack.findMany({
       where,
-      include: { user: true },
+      include: quackInclude(filter.viewerId),
       orderBy: { createdAt: 'desc' },
     });
     return quacks.map(mapPrismaQuackToDomain);
@@ -65,14 +85,28 @@ export class QuackRepository {
     text: string;
     mood: QuackMood | null;
     userId: string;
+    poll: { options: string[] } | null;
   }): Promise<Quack> {
     const quack = await this.prisma.quack.create({
       data: {
         text: createQuackData.text,
         mood: createQuackData.mood,
         user: { connect: { id: createQuackData.userId } },
+        // Created in the same write: a question is never posted without its
+        // answers, or answers without their question.
+        poll: createQuackData.poll
+          ? {
+              create: {
+                options: {
+                  create: createQuackData.poll.options.map(
+                    (text, position) => ({ text, position }),
+                  ),
+                },
+              },
+            }
+          : undefined,
       },
-      include: { user: true },
+      include: quackInclude(createQuackData.userId),
     });
     return mapPrismaQuackToDomain(quack);
   }

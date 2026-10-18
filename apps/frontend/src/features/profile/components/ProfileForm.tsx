@@ -60,9 +60,6 @@ const moodOptions = [
   ...QUACK_MOODS.map((mood) => ({ value: mood, ...moodLabels[mood] })),
 ]
 
-// The kit's Button styles only `disabled`; mirror that look for aria-disabled.
-const ariaDisabledStyle = "aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
-
 const toFormValues = (profile: Profile): FormValues => ({
   username: profile.username,
   name: profile.name,
@@ -260,7 +257,6 @@ export function ProfileForm({ profile }: ProfileFormProps) {
           <Button
             type="submit"
             aria-disabled={isSaving}
-            className={ariaDisabledStyle}
           >
             {isSaving ? <Loader2 className="size-4 animate-spin" /> : null}
             Save changes
@@ -270,7 +266,6 @@ export function ProfileForm({ profile }: ProfileFormProps) {
             variant="outline"
             onClick={handleDiscard}
             aria-disabled={!canDiscard}
-            className={ariaDisabledStyle}
           >
             Discard changes
           </Button>

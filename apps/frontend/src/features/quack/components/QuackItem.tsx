@@ -3,16 +3,22 @@ import { formatDate } from "@/lib/date"
 
 import type { Quack } from "@/features/quack/api/quackSchemas"
 import { HighlightedText } from "@/features/quack/components/HighlightedText"
+import { PollView } from "@/features/quack/components/PollView"
 import { QuackMoodBadge } from "@/features/quack/components/QuackMoodBadge"
+import { QuackPoll } from "@/features/quack/components/QuackPoll"
 import { UsersName } from "@/features/quack/components/UsersName"
 import { UsersUserName } from "@/features/quack/components/UsersUserName"
 
 type QuackItemProps = {
   quack: Quack
   highlight?: string
+  // The signed-in user, to tell whether they may close a question.
+  currentUserId?: string
+  // A static preview (welcome page): questions show results but can't be voted on.
+  isReadOnly?: boolean
 }
 
-export function QuackItem({ quack, highlight }: QuackItemProps) {
+export function QuackItem({ quack, highlight, currentUserId, isReadOnly }: QuackItemProps) {
   const { name, username } = quack.user
 
   const initials = name
@@ -55,6 +61,22 @@ export function QuackItem({ quack, highlight }: QuackItemProps) {
             term={highlight}
           />
         </p>
+        {quack.poll ? (
+          <div className="mt-2">
+            {isReadOnly ? (
+              <PollView
+                poll={quack.poll}
+                highlight={highlight}
+              />
+            ) : (
+              <QuackPoll
+                poll={quack.poll}
+                highlight={highlight}
+                isAuthor={quack.userId === currentUserId}
+              />
+            )}
+          </div>
+        ) : null}
       </div>
     </article>
   )

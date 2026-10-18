@@ -26,6 +26,12 @@ Need a control that isn't in `src/components/ui/`? Add it with `pnpm dlx shadcn@
 
 The CLI puts `shadow-xs`/`shadow-sm` on inputs, textareas and cards. [`DESIGN.md`](DESIGN.md) keeps shadows for things that genuinely float — dialogs, dropdowns, toasts. Strip them.
 
+The CLI also writes `import { cn } from "cn"` and installs an unrelated npm package called `cn`. After every `add`: point the import at `@/lib/utils`, and revert `apps/frontend/package.json` and `pnpm-lock.yaml` if they gained `cn`. Answer "no" when it offers to overwrite an existing component.
+
+### Read API error bodies from `error.data`
+
+ky 2 reads the body of a failed response into `HTTPError.data` before `beforeError` hooks run, so `error.response.json()` / `.clone().json()` throws. Use `error.data` (see `api-client.ts` and `features/quack/api/polls.ts`). Test error handling through the real client with a stubbed `fetch`, not by mocking the API module — a module mock hides this.
+
 ### User stories are written for the client
 
 Stories in `docs/stories/` are read by the product owner, not by developers. They say who wants it, what they get and why; acceptance criteria a person can check in the browser with a yes or no; what is out of scope; and what the page shows when there is nothing to show. No endpoints, query params, libraries, component names or code — those belong in the PR description.

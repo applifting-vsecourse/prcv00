@@ -39,9 +39,56 @@ model Quack {
   userId    String
   createdAt DateTime   @default(now())
   updatedAt DateTime   @default(now()) @updatedAt
+  poll      Poll?
 
   @@index([userId])
   @@map("quack")
+}
+
+model Poll {
+  id        String       @id @default(cuid())
+  quack     Quack        @relation(fields: [quackId], references: [id], onDelete: Cascade)
+  quackId   String       @unique
+  // null while open; set once by the author and never cleared.
+  closedAt  DateTime?
+  createdAt DateTime     @default(now())
+  options   PollOption[]
+  votes     PollVote[]
+
+  @@map("poll")
+}
+
+model PollOption {
+  id       String     @id @default(cuid())
+  poll     Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  pollId   String
+  text     String     @db.VarChar(50)
+  // The order the author wrote the answers in; votes never reorder them.
+  position Int
+  votes    PollVote[]
+
+  @@unique([pollId, position])
+  // Lets a vote point at (option, poll) together, see PollVote.option.
+  @@unique([id, pollId])
+  @@map("poll_option")
+}
+
+// One row per voter per poll. Counts are always derived from these rows,
+// never stored, so they can't drift.
+model PollVote {
+  poll      Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  pollId    String
+  // Composite so the database refuses a vote for another poll's answer.
+  option    PollOption @relation(fields: [optionId, pollId], references: [id, pollId], onDelete: Cascade)
+  optionId  String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  updatedAt DateTime   @updatedAt
+
+  // One person, one vote — enforced by the database.
+  @@id([pollId, userId])
+  @@index([optionId])
+  @@map("poll_vote")
 }
 
 model Session {
@@ -93,17 +140,18 @@ model Verification {
 }
 
 model User {
-  id              String    @id
-  name            String
-  email           String
-  emailVerified   Boolean
-  image           String?   @db.Text
-  createdAt       DateTime
-  updatedAt       DateTime
-  sessions        Session[]
-  accounts        Account[]
-  quacks          Quack[]
-  role            UserRole  @default(user)
+  id            String     @id
+  name          String
+  email         String
+  emailVerified Boolean
+  image         String?    @db.Text
+  createdAt     DateTime
+  updatedAt     DateTime
+  sessions      Session[]
+  accounts      Account[]
+  quacks        Quack[]
+  pollVotes     PollVote[]
+  role          UserRole   @default(user)
 
   username        String? @db.VarChar(50)
   displayUsername String? @db.VarChar(50)

@@ -24,6 +24,26 @@ const SAMPLE_QUACKS: Quack[] = [
     userId: "sample-user-1",
     createdAt: new Date("2026-09-22T09:12:00"),
     user: { id: "sample-user-1", name: "Caffeinated Duck", username: "CaffeinatedDuck" },
+    poll: null,
+  },
+  {
+    id: "sample-poll",
+    text: "Lunch after the reed meeting — where do we go?",
+    mood: null,
+    userId: "sample-user-3",
+    createdAt: new Date("2026-09-22T08:55:00"),
+    user: { id: "sample-user-3", name: "Pond Admin", username: "PondAdmin" },
+    poll: {
+      id: "sample-poll",
+      isClosed: false,
+      options: [
+        { id: "sample-option-1", text: "Bakery by the bridge", votes: 5 },
+        { id: "sample-option-2", text: "Sushi place", votes: 3 },
+        { id: "sample-option-3", text: "Salad bar", votes: 1 },
+      ],
+      totalVotes: 9,
+      myOptionId: null,
+    },
   },
   {
     id: "sample-2",
@@ -32,6 +52,7 @@ const SAMPLE_QUACKS: Quack[] = [
     userId: "sample-user-2",
     createdAt: new Date("2026-09-22T08:40:00"),
     user: { id: "sample-user-2", name: "Deep Duck Thoughts", username: "DeepDuckThoughts" },
+    poll: null,
   },
 ]
 
@@ -100,6 +121,8 @@ function LandingPage() {
               <QuackItem
                 key={quack.id}
                 quack={quack}
+                // A sample: questions show their results but can't be voted on.
+                isReadOnly
               />
             ))}
           </div>

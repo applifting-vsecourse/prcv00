@@ -15,6 +15,8 @@ type QuackListProps = {
   // The search these quacks are the results of, as the user typed it.
   search?: string
   onClearSearch?: () => void
+  // The signed-in user, so their own questions offer "Close question".
+  currentUserId?: string
 }
 
 export function QuackList({
@@ -24,6 +26,7 @@ export function QuackList({
   onReload,
   search: rawSearch,
   onClearSearch,
+  currentUserId,
 }: QuackListProps) {
   const highlight = rawSearch ? toMatchTerm(rawSearch) : ""
   // A lone "@" filters nothing on the server, so it is not a search here either.
@@ -92,6 +95,7 @@ export function QuackList({
           key={quack.id}
           quack={quack}
           highlight={highlight || undefined}
+          currentUserId={currentUserId}
         />
       ))}
     </div>

@@ -92,6 +92,11 @@ export const seedDatabase = async (
     minutesAgo: number;
     mood?: QuackMood;
     text: string;
+    poll?: {
+      options: string[];
+      votes?: { voter: User; option: number }[];
+      isClosed?: boolean;
+    };
   }[] = [
     {
       author: pondAdmin,
@@ -160,6 +165,33 @@ The pond is not ready for this level of quality and, frankly, neither am I. 9/10
 Some of us would quite like to feel things.`,
     },
     {
+      author: migrationSeason,
+      minutesAgo: 1100,
+      text: `Should we stop over at the lake or push straight to the coast?`,
+      poll: {
+        options: ['The lake', 'Straight to the coast'],
+        votes: [
+          { voter: pondAdmin, option: 0 },
+          { voter: breadCritic, option: 0 },
+          { voter: deepDuckThoughts, option: 1 },
+        ],
+        isClosed: true,
+      },
+    },
+    {
+      author: pondAdmin,
+      minutesAgo: 180,
+      text: `Lunch after the reed meeting — where do we go?`,
+      poll: {
+        options: ['Bakery by the bridge', 'Sushi place', 'Salad bar'],
+        votes: [
+          { voter: breadCritic, option: 0 },
+          { voter: caffeinatedDuck, option: 0 },
+          { voter: migrationSeason, option: 1 },
+        ],
+      },
+    },
+    {
       author: caffeinatedDuck,
       minutesAgo: 95,
       mood: 'happy',
@@ -178,12 +210,20 @@ Please stop tagging me.`,
 
   const now = Date.now();
 
-  for (const { author, minutesAgo, mood, text } of exampleQuacks) {
+  for (const { author, minutesAgo, mood, text, poll } of exampleQuacks) {
     await createQuack(prisma, {
       text,
       mood,
       userId: author.id,
       createdAt: new Date(now - minutesAgo * MINUTE_IN_MS),
+      poll: poll && {
+        options: poll.options,
+        isClosed: poll.isClosed,
+        votes: poll.votes?.map(({ voter, option }) => ({
+          userId: voter.id,
+          option,
+        })),
+      },
     });
   }
 };

@@ -4,6 +4,7 @@ import { createFileRoute } from "@tanstack/react-router"
 
 import { Seo } from "@/components/Seo"
 
+import { useSession } from "@/features/auth/hooks/useSession"
 import { profileQueryOptions } from "@/features/profile/api/profileQueryOptions"
 import { quacksQueryOptions } from "@/features/quack/api/quacksQueryOptions"
 import { QuackForm } from "@/features/quack/components/QuackForm"
@@ -23,6 +24,7 @@ function QuacksPage() {
   const quacksQuery = useQuery(quacksQueryOptions(q))
   // Only for the default mood: if it fails to load, posting still works.
   const profileQuery = useQuery(profileQueryOptions())
+  const { user } = useSession()
 
   // Pushes a history entry per search, so Back steps through earlier searches.
   const setSearch = useCallback(
@@ -57,6 +59,7 @@ function QuacksPage() {
           // and refocusing the tab refetches it.
           onReload={() => void quacksQuery.refetch()}
           onClearSearch={() => setSearch("")}
+          currentUserId={user?.id}
         />
       </section>
     </>
