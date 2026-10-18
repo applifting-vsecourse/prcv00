@@ -298,7 +298,6 @@ export function QuackForm({ className, defaultMood = null }: QuackFormProps) {
               type="submit"
               size="sm"
               aria-disabled={isPosting}
-              className="aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
             >
               {isPosting ? <Loader2 className="size-4 animate-spin" /> : null}
               Quack

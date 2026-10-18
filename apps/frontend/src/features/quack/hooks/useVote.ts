@@ -3,10 +3,9 @@ import { useMutation, useQueryClient, type QueryClient } from "@tanstack/react-q
 import { PollClosedError } from "@/features/quack/api/pollErrors"
 import { votePoll, withdrawVote } from "@/features/quack/api/polls"
 import { quackKeys } from "@/features/quack/api/quackKeys"
-import type { Poll, Quack } from "@/features/quack/api/quackSchemas"
+import type { Poll } from "@/features/quack/api/quackSchemas"
+import type { QuacksData } from "@/features/quack/api/quacksQueryOptions"
 import { applyVote } from "@/features/quack/lib/pollMath"
-
-type QuacksData = { search?: string; quacks: Quack[] }
 
 // The same poll can sit in several cached lists (the full feed and searches),
 // so every change is written into all of them.
@@ -53,11 +52,17 @@ export function useVote(pollId: string) {
       setPollInFeed(queryClient, pollId, (poll) => applyVote(poll, optionId))
       return { snapshot }
     },
-    onError: (_error, _optionId, context) => {
+    onError: (error, _optionId, context) => {
       // Back to how it was before this click. If a later click is queued, its
       // own result (or the refetch below) decides what is shown instead.
-      if (!context || !isLastVote()) return
-      for (const [queryKey, data] of context.snapshot) queryClient.setQueryData(queryKey, data)
+      if (context && isLastVote()) {
+        for (const [queryKey, data] of context.snapshot) queryClient.setQueryData(queryKey, data)
+      }
+      // The server says it's closed: show it closed now, not only once the
+      // refetch lands, which may be slow or fail on the same flaky network.
+      if (error instanceof PollClosedError) {
+        setPollInFeed(queryClient, pollId, (poll) => ({ ...poll, isClosed: true }))
+      }
     },
     onSuccess: (poll) => {
       if (isLastVote()) setPollInFeed(queryClient, pollId, () => poll)

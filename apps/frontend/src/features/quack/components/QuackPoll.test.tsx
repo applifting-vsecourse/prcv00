@@ -70,10 +70,12 @@ const renderPoll = (poll: Poll, { isAuthor = false } = {}) => {
 // A promise the test settles by hand, to look at the UI mid-request.
 function deferred<T>() {
   let resolve: (value: T) => void = () => undefined
-  const promise = new Promise<T>((res) => {
+  let reject: (error: Error) => void = () => undefined
+  const promise = new Promise<T>((res, rej) => {
     resolve = res
+    reject = rej
   })
-  return { promise, resolve }
+  return { promise, resolve, reject }
 }
 
 const answer = (text: string) => screen.getByRole("button", { name: new RegExp(`^${text}`) })
@@ -146,6 +148,58 @@ describe("QuackPoll", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "This question was closed before your vote.",
     )
+    // Shown closed straight away — the harness's "refetch" only returns the
+    // cache, so this can't be the refetch's doing.
+    expect(screen.getByText("Closed")).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: /^Pizza/ })).not.toBeInTheDocument()
+    expect(screen.getByText("3 votes")).toBeInTheDocument()
+  })
+
+  describe("quick clicks where one fails", () => {
+    it("ends on the first answer when the second click fails", async () => {
+      const first = deferred<Poll>()
+      vi.mocked(votePoll)
+        .mockReturnValueOnce(first.promise)
+        .mockRejectedValueOnce(new Error("Failed to fetch"))
+      renderPoll(aPoll())
+
+      await userEvent.click(answer("Pizza"))
+      await userEvent.click(answer("Sushi"))
+      first.resolve(
+        aPoll({
+          options: [
+            { id: "o1", text: "Pizza", votes: 3 },
+            { id: "o2", text: "Sushi", votes: 1 },
+          ],
+          totalVotes: 4,
+          myOptionId: "o1",
+        }),
+      )
+
+      expect(await screen.findByRole("alert")).toHaveTextContent("Your vote didn't go through.")
+      expect(answer("Pizza")).toHaveAttribute("aria-pressed", "true")
+      expect(answer("Sushi")).toHaveAttribute("aria-pressed", "false")
+      expect(screen.getByText("4 votes")).toBeInTheDocument()
+    })
+
+    it("doesn't flick back when the first fails but the second goes through", async () => {
+      const first = deferred<Poll>()
+      const second = deferred<Poll>()
+      vi.mocked(votePoll).mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise)
+      renderPoll(aPoll())
+
+      await userEvent.click(answer("Pizza"))
+      await userEvent.click(answer("Sushi"))
+      first.reject(new Error("Failed to fetch"))
+      await waitFor(() => expect(votePoll).toHaveBeenCalledTimes(2))
+
+      // The failed first click doesn't restore its snapshot over the second.
+      expect(answer("Sushi")).toHaveAttribute("aria-pressed", "true")
+
+      second.resolve(aPoll({ myOptionId: "o2" }))
+      await waitFor(() => expect(votePoll).toHaveBeenCalledTimes(2))
+      expect(answer("Sushi")).toHaveAttribute("aria-pressed", "true")
+    })
   })
 
   it("takes my vote back when I click my own answer again", async () => {
@@ -247,6 +301,63 @@ describe("QuackPoll", () => {
 
       expect(closePoll).not.toHaveBeenCalled()
       expect(answer("Pizza")).toBeInTheDocument()
+    })
+
+    const closeIt = async () => {
+      await userEvent.click(screen.getByRole("button", { name: "Close question" }))
+      const dialog = await screen.findByRole("alertdialog")
+      await userEvent.click(within(dialog).getByRole("button", { name: "Close question" }))
+    }
+
+    it("says so when closing fails, and stays open", async () => {
+      vi.mocked(closePoll).mockRejectedValue(new Error("Failed to fetch"))
+      renderPoll(aPoll(), { isAuthor: true })
+
+      await closeIt()
+
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        "Couldn't close the question. Try again.",
+      )
+      expect(answer("Pizza")).toBeInTheDocument()
+    })
+
+    it("shows it closed, without an error, when another tab closed it first", async () => {
+      vi.mocked(closePoll).mockRejectedValue(new PollClosedError())
+      renderPoll(aPoll(), { isAuthor: true })
+
+      await closeIt()
+
+      expect(await screen.findByText("Closed")).toBeInTheDocument()
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument()
+    })
+
+    it("drops an earlier vote error once the question is closed", async () => {
+      vi.mocked(votePoll).mockRejectedValue(new Error("Failed to fetch"))
+      vi.mocked(closePoll).mockResolvedValue(aPoll({ isClosed: true }))
+      renderPoll(aPoll(), { isAuthor: true })
+      await userEvent.click(answer("Sushi"))
+      await screen.findByRole("alert")
+
+      await closeIt()
+
+      expect(await screen.findByText("Closed")).toBeInTheDocument()
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument()
+    })
+
+    it("shows the close failure, not an older vote error", async () => {
+      vi.mocked(votePoll).mockRejectedValue(new Error("Failed to fetch"))
+      vi.mocked(closePoll).mockRejectedValue(new Error("Failed to fetch"))
+      renderPoll(aPoll(), { isAuthor: true })
+      await userEvent.click(answer("Sushi"))
+      await screen.findByRole("alert")
+
+      await closeIt()
+
+      await waitFor(() =>
+        expect(screen.getByRole("alert")).toHaveTextContent(
+          "Couldn't close the question. Try again.",
+        ),
+      )
     })
   })
 })

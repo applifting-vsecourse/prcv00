@@ -31,21 +31,34 @@ export function QuackPoll({ poll, highlight, isAuthor }: QuackPollProps) {
   const close = useClosePoll(poll.id)
   const pollRef = useRef<HTMLDivElement>(null)
 
-  const error = vote.error
-    ? voteErrorMessage(vote.error)
-    : close.error && !(close.error instanceof PollClosedError)
-      ? closeErrorMessage
+  // One message at a time, from the latest action: voting clears a close
+  // error and closing clears a vote error. Once the question is closed, a
+  // "try again" about a vote would be a dead end, so only the closed message
+  // survives that.
+  const voteError =
+    vote.error && (!poll.isClosed || vote.error instanceof PollClosedError)
+      ? voteErrorMessage(vote.error)
       : null
+  const closeError =
+    close.error && !(close.error instanceof PollClosedError) ? closeErrorMessage : null
+  const error = voteError ?? closeError
+
+  const handleVote = (optionId: string | null) => {
+    close.reset()
+    vote.mutate(optionId)
+  }
 
   // Closing removes the "Close question" button the dialog would hand focus
   // back to; land on the now-closed question instead of the top of the page.
-  const handleClose = () =>
+  const handleClose = () => {
+    vote.reset()
     close.mutate(undefined, {
       onSettled: () =>
         setTimeout(() => {
           if (document.activeElement === document.body) pollRef.current?.focus()
         }),
     })
+  }
 
   return (
     <div
@@ -58,7 +71,7 @@ export function QuackPoll({ poll, highlight, isAuthor }: QuackPollProps) {
       <PollView
         poll={poll}
         highlight={highlight}
-        onVote={(optionId) => vote.mutate(optionId)}
+        onVote={handleVote}
         footer={
           <>
             {/* Under this question only: one failed vote must not alarm the page. */}
@@ -98,6 +111,10 @@ function ClosePollButton({ onConfirm, isClosing }: ClosePollButtonProps) {
           className="self-start"
           // aria-disabled, not disabled: focus stays put while it closes.
           aria-disabled={isClosing}
+          // …but it must not open the dialog again meanwhile.
+          onClick={(event) => {
+            if (isClosing) event.preventDefault()
+          }}
         >
           Close question
         </Button>
