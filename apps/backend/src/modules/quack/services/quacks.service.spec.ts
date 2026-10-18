@@ -6,6 +6,8 @@ import { Identity } from '@/shared/auth/domain/identity';
 import { mock } from 'jest-mock-extended';
 import { QuacksService } from './quacks.service';
 
+const viewer = { id: 'viewer-1' } as Identity;
+
 const aQuack = (overrides: Partial<Quack> = {}): Quack => ({
   id: 'q1',
   text: 'quack quack',
@@ -14,6 +16,7 @@ const aQuack = (overrides: Partial<Quack> = {}): Quack => ({
   createdAt: new Date('2026-01-01T12:00:00Z'),
   updatedAt: new Date('2026-01-01T12:00:00Z'),
   user: { id: 'u1', name: 'Caffeinated Duck', username: 'CaffeinatedDuck' },
+  poll: null,
   ...overrides,
 });
 
@@ -25,9 +28,13 @@ describe('QuacksService', () => {
 
     const service = new QuacksService(repository);
 
-    await expect(service.getQuacks()).resolves.toEqual(quacks);
+    await expect(service.getQuacks(viewer)).resolves.toEqual(quacks);
     expect(repository.getQuacks).toHaveBeenCalledTimes(1);
-    expect(repository.getQuacks).toHaveBeenCalledWith({ search: undefined });
+    // The viewer decides which poll vote is "mine"; nobody else's is loaded.
+    expect(repository.getQuacks).toHaveBeenCalledWith({
+      search: undefined,
+      viewerId: 'viewer-1',
+    });
   });
 
   it.each([
@@ -40,9 +47,12 @@ describe('QuacksService', () => {
     const repository = mock<QuackRepository>();
     repository.getQuacks.mockResolvedValue([]);
 
-    await new QuacksService(repository).getQuacks({ search: input });
+    await new QuacksService(repository).getQuacks(viewer, { search: input });
 
-    expect(repository.getQuacks).toHaveBeenCalledWith({ search: expected });
+    expect(repository.getQuacks).toHaveBeenCalledWith({
+      search: expected,
+      viewerId: 'viewer-1',
+    });
   });
 
   it.each(['', '   ', '@', ' @ '])(
@@ -51,9 +61,12 @@ describe('QuacksService', () => {
       const repository = mock<QuackRepository>();
       repository.getQuacks.mockResolvedValue([]);
 
-      await new QuacksService(repository).getQuacks({ search: input });
+      await new QuacksService(repository).getQuacks(viewer, { search: input });
 
-      expect(repository.getQuacks).toHaveBeenCalledWith({ search: undefined });
+      expect(repository.getQuacks).toHaveBeenCalledWith({
+        search: undefined,
+        viewerId: 'viewer-1',
+      });
     },
   );
 
@@ -66,12 +79,13 @@ describe('QuacksService', () => {
     const user = { id: 'u1' } as Identity;
 
     await expect(
-      service.createQuack(user, { text: 'hello', mood: null }),
+      service.createQuack(user, { text: 'hello', mood: null, poll: null }),
     ).resolves.toEqual(created);
     // the author comes from the session, not from the caller's payload
     expect(repository.createQuack).toHaveBeenCalledWith({
       text: 'hello',
       mood: null,
+      poll: null,
       userId: 'u1',
     });
   });
@@ -85,11 +99,30 @@ describe('QuacksService', () => {
     const user = { id: 'u1' } as Identity;
 
     await expect(
-      service.createQuack(user, { text: 'grr', mood: 'angry' }),
+      service.createQuack(user, { text: 'grr', mood: 'angry', poll: null }),
     ).resolves.toEqual(created);
     expect(repository.createQuack).toHaveBeenCalledWith({
       text: 'grr',
       mood: 'angry',
+      poll: null,
+      userId: 'u1',
+    });
+  });
+
+  it('passes the answers of a question through, in order', async () => {
+    const repository = mock<QuackRepository>();
+    repository.createQuack.mockResolvedValue(aQuack());
+
+    await new QuacksService(repository).createQuack({ id: 'u1' } as Identity, {
+      text: 'Lunch?',
+      mood: null,
+      poll: { options: ['Pizza', 'Sushi'] },
+    });
+
+    expect(repository.createQuack).toHaveBeenCalledWith({
+      text: 'Lunch?',
+      mood: null,
+      poll: { options: ['Pizza', 'Sushi'] },
       userId: 'u1',
     });
   });

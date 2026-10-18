@@ -10,6 +10,22 @@ export const quackUserSchema = z.object({
   username: z.string(),
 })
 
+export const pollOptionSchema = z.object({
+  id: z.string(),
+  text: z.string(),
+  votes: z.number().int().nonnegative(),
+})
+
+export const pollSchema = z.object({
+  id: z.string(),
+  isClosed: z.boolean(),
+  // In the order the author wrote them; votes never reorder them.
+  options: z.array(pollOptionSchema),
+  totalVotes: z.number().int().nonnegative(),
+  // The signed-in user's own vote. Nobody else's is ever sent.
+  myOptionId: z.string().nullable(),
+})
+
 export const quackSchema = z.object({
   id: z.string(),
   text: z.string(),
@@ -17,9 +33,11 @@ export const quackSchema = z.object({
   userId: z.string(),
   createdAt: z.coerce.date(),
   user: quackUserSchema,
+  poll: pollSchema.nullable(),
 })
 
 export const quacksSchema = z.array(quackSchema)
 
 export type Quack = z.infer<typeof quackSchema>
+export type Poll = z.infer<typeof pollSchema>
 export type { QuackMood } from "@/lib/moods"

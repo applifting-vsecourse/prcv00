@@ -45,8 +45,13 @@ export class QuacksController {
   @ApiResponse({ status: 200, type: [QuackResponseDto] })
   @ApiResponse({ status: 400, description: 'Search term too long' })
   @ApiResponse({ status: 401, description: 'Not signed in' })
-  async list(@Query() query: ListQuacksQueryDto): Promise<QuackResponseDto[]> {
-    const quacks = await this.quacksService.getQuacks({ search: query.q });
+  async list(
+    @User() user: Identity,
+    @Query() query: ListQuacksQueryDto,
+  ): Promise<QuackResponseDto[]> {
+    const quacks = await this.quacksService.getQuacks(user, {
+      search: query.q,
+    });
     return quacks.map(QuackResponseDto.fromDomain);
   }
 
@@ -54,6 +59,7 @@ export class QuacksController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a quack' })
   @ApiResponse({ status: 201, type: QuackResponseDto })
+  @ApiResponse({ status: 400, description: 'Invalid text, mood or answers' })
   @ApiResponse({ status: 401, description: 'Not signed in' })
   async create(
     @User() user: Identity,
@@ -62,6 +68,7 @@ export class QuacksController {
     const quack = await this.quacksService.createQuack(user, {
       text: body.text,
       mood: body.mood ?? null,
+      poll: body.poll ? { options: body.poll.options } : null,
     });
     return QuackResponseDto.fromDomain(quack);
   }
