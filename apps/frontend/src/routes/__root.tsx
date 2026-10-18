@@ -17,7 +17,9 @@ function RootComponent() {
       <Outlet />
       <Toaster
         richColors
-        position="top-right"
+        // Top-right sat on the user menu, the very place people look after
+        // saving their profile, and hovering a toast pauses it.
+        position="bottom-right"
       />
     </>
   )

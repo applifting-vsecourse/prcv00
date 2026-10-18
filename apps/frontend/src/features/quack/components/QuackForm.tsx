@@ -1,4 +1,4 @@
-import { useId } from "react"
+import { useEffect, useId } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Loader2 } from "lucide-react"
 import { useForm, useWatch } from "react-hook-form"
@@ -16,10 +16,9 @@ import {
 } from "@/components/ui/form"
 import { Textarea } from "@/components/ui/textarea"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { moodLabels, QUACK_MOODS, quackMoodSchema, type QuackMood } from "@/lib/moods"
 import { cn } from "@/lib/utils"
 
-import { QUACK_MOODS, quackMoodSchema } from "@/features/quack/api/quackSchemas"
-import { moodLabels } from "@/features/quack/components/moods"
 import { useAddQuack } from "@/features/quack/hooks/useAddQuack"
 
 // Mirrors the server-side DTO (MaxLength(280)) so the user is told before
@@ -37,21 +36,39 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>
 
-type QuackFormProps = { className?: string }
+type QuackFormProps = {
+  className?: string
+  // The user's default mood from Settings; null or omitted means no mood.
+  defaultMood?: QuackMood | null
+}
 
-export function QuackForm({ className }: QuackFormProps) {
+export function QuackForm({ className, defaultMood = null }: QuackFormProps) {
   const addQuack = useAddQuack()
   const moodLabelId = useId()
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { text: "", mood: null },
+    defaultValues: { text: "", mood: defaultMood },
   })
+
+  // The profile can arrive after the form mounts. Follow it, unless the user
+  // has already picked a mood for this quack.
+  useEffect(() => {
+    if (!form.getFieldState("mood").isDirty) {
+      form.resetField("mood", { defaultValue: defaultMood })
+    }
+  }, [defaultMood, form])
 
   const text = useWatch({ control: form.control, name: "text" })
   const length = text?.length ?? 0
 
   const handleSubmit = (values: FormValues) => {
-    addQuack.mutate({ text: values.text, mood: values.mood }, { onSuccess: () => form.reset() })
+    addQuack.mutate(
+      { text: values.text, mood: values.mood },
+      {
+        // Back to an empty quack with the default mood picked again.
+        onSuccess: () => form.reset({ text: "", mood: defaultMood }),
+      },
+    )
   }
 
   return (

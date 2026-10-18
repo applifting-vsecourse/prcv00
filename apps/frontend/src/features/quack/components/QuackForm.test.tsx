@@ -3,6 +3,8 @@ import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+import type { QuackMood } from "@/lib/moods"
+
 import { addQuack } from "@/features/quack/api/addQuack"
 import { QuackForm } from "@/features/quack/components/QuackForm"
 
@@ -20,12 +22,16 @@ beforeEach(() => {
   })
 })
 
-const renderForm = () =>
-  render(
-    <QueryClientProvider client={new QueryClient()}>
-      <QuackForm />
-    </QueryClientProvider>,
+const renderForm = (defaultMood?: QuackMood | null) => {
+  const queryClient = new QueryClient()
+  const ui = (mood?: QuackMood | null) => (
+    <QueryClientProvider client={queryClient}>
+      <QuackForm defaultMood={mood} />
+    </QueryClientProvider>
   )
+  const result = render(ui(defaultMood))
+  return { ...result, setDefaultMood: (mood: QuackMood | null) => result.rerender(ui(mood)) }
+}
 
 const submitted = async () => {
   await waitFor(() => expect(addQuack).toHaveBeenCalledOnce())
@@ -72,5 +78,56 @@ describe("QuackForm", () => {
     await userEvent.click(screen.getByRole("button", { name: "Quack" }))
 
     expect(await submitted()).toEqual({ text: "never mind", mood: null })
+  })
+
+  describe("with a default mood from Settings", () => {
+    it("starts with it picked and posts it", async () => {
+      renderForm("happy")
+
+      expect(screen.getByRole("radio", { name: "Happy" })).toBeChecked()
+      await userEvent.type(screen.getByLabelText("New quack"), "yay")
+      await userEvent.click(screen.getByRole("button", { name: "Quack" }))
+
+      expect(await submitted()).toEqual({ text: "yay", mood: "happy" })
+    })
+
+    it("picks it again for the next quack", async () => {
+      renderForm("happy")
+
+      await userEvent.type(screen.getByLabelText("New quack"), "grr")
+      await userEvent.click(screen.getByRole("radio", { name: "Angry" }))
+      await userEvent.click(screen.getByRole("button", { name: "Quack" }))
+      await submitted()
+
+      await waitFor(() => expect(screen.getByLabelText("New quack")).toHaveValue(""))
+      expect(screen.getByRole("radio", { name: "Happy" })).toBeChecked()
+    })
+
+    it("can still be cleared for one quack", async () => {
+      renderForm("sad")
+
+      await userEvent.type(screen.getByLabelText("New quack"), "fine")
+      await userEvent.click(screen.getByRole("radio", { name: "Sad" }))
+      await userEvent.click(screen.getByRole("button", { name: "Quack" }))
+
+      expect(await submitted()).toEqual({ text: "fine", mood: null })
+    })
+
+    it("follows it when it loads after the form", () => {
+      const { setDefaultMood } = renderForm()
+
+      setDefaultMood("silly")
+
+      expect(screen.getByRole("radio", { name: "Silly" })).toBeChecked()
+    })
+
+    it("does not override a mood the user already picked", async () => {
+      const { setDefaultMood } = renderForm()
+
+      await userEvent.click(screen.getByRole("radio", { name: "Angry" }))
+      setDefaultMood("silly")
+
+      expect(screen.getByRole("radio", { name: "Angry" })).toBeChecked()
+    })
   })
 })

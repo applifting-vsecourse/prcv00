@@ -4,6 +4,7 @@ import { createFileRoute } from "@tanstack/react-router"
 
 import { Seo } from "@/components/Seo"
 
+import { profileQueryOptions } from "@/features/profile/api/profileQueryOptions"
 import { quacksQueryOptions } from "@/features/quack/api/quacksQueryOptions"
 import { QuackForm } from "@/features/quack/components/QuackForm"
 import { QuackList } from "@/features/quack/components/QuackList"
@@ -20,6 +21,8 @@ function QuacksPage() {
   const { q } = Route.useSearch()
   const navigate = Route.useNavigate()
   const quacksQuery = useQuery(quacksQueryOptions(q))
+  // Only for the default mood: if it fails to load, posting still works.
+  const profileQuery = useQuery(profileQueryOptions())
 
   // Pushes a history entry per search, so Back steps through earlier searches.
   const setSearch = useCallback(
@@ -33,7 +36,10 @@ function QuacksPage() {
       <section className="mx-auto w-full max-w-2xl px-4 py-8">
         <h1 className="mb-4 text-2xl font-semibold tracking-tight">Quacks</h1>
 
-        <QuackForm className="mb-4" />
+        <QuackForm
+          className="mb-4"
+          defaultMood={profileQuery.data?.defaultQuackMood}
+        />
 
         <QuackSearch
           className="mb-4"
