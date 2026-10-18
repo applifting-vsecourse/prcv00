@@ -132,6 +132,44 @@ describe("QuackForm", () => {
     })
   })
 
+  it("keeps focus on Quack while posting, and a second press does not post twice", async () => {
+    let finishPosting: () => void = () => undefined
+    vi.mocked(addQuack).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finishPosting = () =>
+            resolve({
+              id: "q1",
+              text: "hello",
+              mood: null,
+              userId: "u1",
+              createdAt: new Date(),
+              user: { id: "u1", name: "Caffeinated Duck", username: "CaffeinatedDuck" },
+              poll: null,
+            })
+        }),
+    )
+    renderForm()
+    const quackButton = screen.getByRole("button", { name: "Quack" })
+
+    await userEvent.type(screen.getByLabelText("New quack"), "hello")
+    await userEvent.click(quackButton)
+    await waitFor(() => expect(quackButton).toHaveAttribute("aria-disabled", "true"))
+
+    // A disabled element would drop focus to <body> in a browser; nothing is disabled.
+    expect(quackButton).toHaveFocus()
+    expect(quackButton).toBeEnabled()
+    expect(screen.getByLabelText("New quack")).toHaveAttribute("readonly")
+    for (const radio of screen.getAllByRole("radio")) expect(radio).toBeEnabled()
+
+    await userEvent.click(quackButton)
+    finishPosting()
+
+    await waitFor(() => expect(screen.getByLabelText("New quack")).toHaveValue(""))
+    expect(addQuack).toHaveBeenCalledOnce()
+    expect(quackButton).toHaveFocus()
+  })
+
   describe("asking a question", () => {
     const addAnswers = () => userEvent.click(screen.getByRole("button", { name: "Add answers" }))
     const answerField = (n: number) => screen.getByLabelText(`Answer ${n}`)
@@ -179,7 +217,7 @@ describe("QuackForm", () => {
     })
 
     it.each([
-      ["an empty answer", ["Pizza", ""], 2, "Write an answer, or remove it"],
+      ["an empty answer", ["Pizza", ""], 2, "Write an answer"],
       ["an answer over 50 characters", ["a".repeat(51), "b"], 1, "Keep it under 50 characters"],
       ["the same answer twice", ["Pizza", "pizza "], 2, "This answer is already on the list"],
     ])("refuses %s, next to that answer", async (_label, [first, second], badField, message) => {

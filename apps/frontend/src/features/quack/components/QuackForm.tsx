@@ -45,7 +45,7 @@ const schema = z
         text: z
           .string()
           .trim()
-          .min(1, "Write an answer, or remove it")
+          .min(1, "Write an answer")
           .max(ANSWER_MAX_LENGTH, `Keep it under ${ANSWER_MAX_LENGTH} characters`),
       }),
     ),
@@ -96,7 +96,13 @@ export function QuackForm({ className, defaultMood = null }: QuackFormProps) {
   const text = useWatch({ control: form.control, name: "text" })
   const length = text?.length ?? 0
 
+  // Nothing here uses `disabled` while posting: a disabled element drops
+  // keyboard focus to <body>. Fields go read-only, the button aria-disabled,
+  // and the handlers ignore input until the quack is posted.
+  const isPosting = addQuack.isPending
+
   const handleSubmit = (values: FormValues) => {
+    if (isPosting) return
     addQuack.mutate(
       {
         text: values.text,
@@ -158,7 +164,7 @@ export function QuackForm({ className, defaultMood = null }: QuackFormProps) {
                 <Textarea
                   rows={3}
                   placeholder="Quack something..."
-                  disabled={addQuack.isPending}
+                  readOnly={isPosting}
                   {...field}
                 />
               </FormControl>
@@ -184,8 +190,7 @@ export function QuackForm({ className, defaultMood = null }: QuackFormProps) {
                       <FormControl>
                         <Input
                           placeholder={index === 0 ? "e.g. Pizza" : undefined}
-                          // readOnly, not disabled: focus stays put while posting.
-                          readOnly={addQuack.isPending}
+                          readOnly={isPosting}
                           {...field}
                         />
                       </FormControl>
@@ -257,10 +262,9 @@ export function QuackForm({ className, defaultMood = null }: QuackFormProps) {
                     role="radiogroup"
                     aria-labelledby={moodLabelId}
                     value={field.value ?? ""}
-                    onValueChange={(value) =>
-                      field.onChange(value ? quackMoodSchema.parse(value) : null)
-                    }
-                    disabled={addQuack.isPending}
+                    onValueChange={(value) => {
+                      if (!isPosting) field.onChange(value ? quackMoodSchema.parse(value) : null)
+                    }}
                   >
                     {QUACK_MOODS.map((mood) => {
                       const { icon: Icon, label } = moodLabels[mood]
@@ -293,9 +297,10 @@ export function QuackForm({ className, defaultMood = null }: QuackFormProps) {
             <Button
               type="submit"
               size="sm"
-              disabled={addQuack.isPending}
+              aria-disabled={isPosting}
+              className="aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
             >
-              {addQuack.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
+              {isPosting ? <Loader2 className="size-4 animate-spin" /> : null}
               Quack
             </Button>
           </div>
