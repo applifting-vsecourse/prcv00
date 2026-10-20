@@ -20,3 +20,15 @@ export type Quack = {
   user?: QuackAuthor;
   poll: Poll | null;
 };
+
+export class QuackNotFoundError extends Error {
+  constructor(quackId: string) {
+    super(`Quack ${quackId} not found`);
+  }
+}
+
+export class NotQuackAuthorError extends Error {
+  constructor() {
+    super('Only the author can delete this quack');
+  }
+}
