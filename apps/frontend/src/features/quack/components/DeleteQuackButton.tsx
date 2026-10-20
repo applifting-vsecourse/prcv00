@@ -58,6 +58,9 @@ export function DeleteQuackButton({ quackId }: DeleteQuackButtonProps) {
             ref={triggerRef}
             variant="ghost"
             size="sm"
+            // Every own quack has one; "Delete quack" tells them apart from the
+            // dialog's "Delete" and keeps the visible word in the name.
+            aria-label="Delete quack"
             // aria-disabled, not disabled: focus stays put while deleting.
             aria-disabled={deleteQuack.isPending}
             onClick={(event) => {
