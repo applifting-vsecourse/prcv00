@@ -62,7 +62,7 @@ const renderFeed = () => {
 const deleteButtonOf = (text: string) => {
   const article = screen.getByText(text).closest("article")
   if (!article) throw new Error(`no quack "${text}"`)
-  return within(article).getByRole("button", { name: "Delete" })
+  return within(article).getByRole("button", { name: "Delete quack" })
 }
 
 const confirm = async (buttonName: "Delete" | "Keep it") => {
@@ -79,9 +79,9 @@ describe("Deleting a quack", () => {
   it("offers Delete only on my own quacks", () => {
     renderFeed()
 
-    expect(screen.getAllByRole("button", { name: "Delete" })).toHaveLength(2)
+    expect(screen.getAllByRole("button", { name: "Delete quack" })).toHaveLength(2)
     const others = screen.getByText("someone else's quack").closest("article")
-    expect(others && within(others).queryByRole("button", { name: "Delete" })).toBeNull()
+    expect(others && within(others).queryByRole("button", { name: "Delete quack" })).toBeNull()
   })
 
   it("asks first, then removes the quack and moves focus to the next one", async () => {
