@@ -110,4 +110,22 @@ export class QuackRepository {
     });
     return mapPrismaQuackToDomain(quack);
   }
+
+  async findAuthorId(quackId: string): Promise<string | null> {
+    const quack = await this.prisma.quack.findUnique({
+      where: { id: quackId },
+      select: { userId: true },
+    });
+    return quack?.userId ?? null;
+  }
+
+  // The author is part of the delete itself, so even a request that slipped
+  // past the service's check can only ever remove the caller's own quack.
+  // Its poll, answers and votes go with it (onDelete: Cascade).
+  async deleteQuack(quackId: string, userId: string): Promise<boolean> {
+    const { count } = await this.prisma.quack.deleteMany({
+      where: { id: quackId, userId },
+    });
+    return count > 0;
+  }
 }

@@ -1,6 +1,10 @@
 // Example unit test — the pattern to copy for your own services.
 // The repository is mocked, so the test exercises the service in isolation.
-import { Quack } from '@/modules/quack/domain/quack';
+import {
+  NotQuackAuthorError,
+  Quack,
+  QuackNotFoundError,
+} from '@/modules/quack/domain/quack';
 import { QuackRepository } from '@/modules/quack/repositories/quack.repository';
 import { Identity } from '@/shared/auth/domain/identity';
 import { mock } from 'jest-mock-extended';
@@ -124,6 +128,52 @@ describe('QuacksService', () => {
       mood: null,
       poll: { options: ['Pizza', 'Sushi'] },
       userId: 'u1',
+    });
+  });
+
+  describe('deleteQuack', () => {
+    const author = { id: 'u1' } as Identity;
+
+    it("deletes the author's own quack, scoped to the author", async () => {
+      const repository = mock<QuackRepository>();
+      repository.findAuthorId.mockResolvedValue('u1');
+      repository.deleteQuack.mockResolvedValue(true);
+
+      await expect(
+        new QuacksService(repository).deleteQuack(author, 'q1'),
+      ).resolves.toBeUndefined();
+      // the delete itself names the caller, not just the check before it
+      expect(repository.deleteQuack).toHaveBeenCalledWith('q1', 'u1');
+    });
+
+    it("refuses someone else's quack and deletes nothing", async () => {
+      const repository = mock<QuackRepository>();
+      repository.findAuthorId.mockResolvedValue('someone-else');
+
+      await expect(
+        new QuacksService(repository).deleteQuack(author, 'q1'),
+      ).rejects.toBeInstanceOf(NotQuackAuthorError);
+      expect(repository.deleteQuack).not.toHaveBeenCalled();
+    });
+
+    it('reports a quack that does not exist', async () => {
+      const repository = mock<QuackRepository>();
+      repository.findAuthorId.mockResolvedValue(null);
+
+      await expect(
+        new QuacksService(repository).deleteQuack(author, 'missing'),
+      ).rejects.toBeInstanceOf(QuackNotFoundError);
+      expect(repository.deleteQuack).not.toHaveBeenCalled();
+    });
+
+    it('reports a quack deleted meanwhile (e.g. from another tab)', async () => {
+      const repository = mock<QuackRepository>();
+      repository.findAuthorId.mockResolvedValue('u1');
+      repository.deleteQuack.mockResolvedValue(false);
+
+      await expect(
+        new QuacksService(repository).deleteQuack(author, 'q1'),
+      ).rejects.toBeInstanceOf(QuackNotFoundError);
     });
   });
 });
