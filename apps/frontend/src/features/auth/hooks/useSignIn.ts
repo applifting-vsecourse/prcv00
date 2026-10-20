@@ -19,7 +19,13 @@ export function useSignIn() {
       if (error) throw new Error(error.message ?? "Sign in failed")
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: authKeys.session() })
+      // "all": nothing on the login page uses the session, and by default
+      // invalidateQueries only refetches queries in use. Without it the cache
+      // stays "signed out" and the protected route sends you back to /login.
+      await queryClient.invalidateQueries({
+        queryKey: authKeys.session(),
+        refetchType: "all",
+      })
     },
   })
 }
