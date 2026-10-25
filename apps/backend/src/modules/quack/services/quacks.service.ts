@@ -5,7 +5,7 @@ import {
   QuackNotFoundError,
 } from '@/modules/quack/domain/quack';
 import { QuackRepository } from '@/modules/quack/repositories/quack.repository';
-import { Identity } from '@/shared/auth/domain/identity';
+import { Identity, isAdmin } from '@/shared/auth/domain/identity';
 import { Injectable } from '@nestjs/common';
 
 // People type handles the way they see them ("@alice"); the username is stored
@@ -51,10 +51,17 @@ export class QuacksService {
   async deleteQuack(user: Identity, quackId: string): Promise<void> {
     const authorId = await this.quackRepository.findAuthorId(quackId);
     if (!authorId) throw new QuackNotFoundError(quackId);
-    if (authorId !== user.id) throw new NotQuackAuthorError();
+
+    // Admins may delete anyone's quack (moderation); everyone else only their own.
+    const admin = isAdmin(user);
+    if (authorId !== user.id && !admin) throw new NotQuackAuthorError();
+
+    // A regular user's delete stays scoped to themselves, not to the author
+    // looked up above, so it can never remove someone else's quack.
+    const scopeToAuthorId = admin ? authorId : user.id;
 
     // false: it was deleted between the check and now (e.g. another tab).
-    if (!(await this.quackRepository.deleteQuack(quackId, user.id))) {
+    if (!(await this.quackRepository.deleteQuack(quackId, scopeToAuthorId))) {
       throw new QuackNotFoundError(quackId);
     }
   }

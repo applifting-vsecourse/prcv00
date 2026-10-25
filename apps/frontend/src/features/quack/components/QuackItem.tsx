@@ -15,14 +15,23 @@ type QuackItemProps = {
   highlight?: string
   // The signed-in user, to tell whether they may close a question.
   currentUserId?: string
+  // The signed-in user is an admin, so they may delete anyone's quack.
+  isAdmin?: boolean
   // A static preview (welcome page): questions show results but can't be voted on.
   isReadOnly?: boolean
 }
 
-export function QuackItem({ quack, highlight, currentUserId, isReadOnly }: QuackItemProps) {
+export function QuackItem({
+  quack,
+  highlight,
+  currentUserId,
+  isAdmin,
+  isReadOnly,
+}: QuackItemProps) {
   const { name, username } = quack.user
   // The server decides for real (403 otherwise); this only decides what to offer.
   const isAuthor = currentUserId !== undefined && quack.userId === currentUserId
+  const canDelete = (isAuthor || isAdmin === true) && !isReadOnly
 
   const initials = name
     .split(" ")
@@ -80,9 +89,12 @@ export function QuackItem({ quack, highlight, currentUserId, isReadOnly }: Quack
             )}
           </div>
         ) : null}
-        {isAuthor && !isReadOnly ? (
+        {canDelete ? (
           <div className="mt-1">
-            <DeleteQuackButton quackId={quack.id} />
+            <DeleteQuackButton
+              quackId={quack.id}
+              author={isAuthor ? undefined : quack.user}
+            />
           </div>
         ) : null}
       </div>

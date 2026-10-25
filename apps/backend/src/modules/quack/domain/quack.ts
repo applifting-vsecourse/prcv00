@@ -29,6 +29,6 @@ export class QuackNotFoundError extends Error {
 
 export class NotQuackAuthorError extends Error {
   constructor() {
-    super('Only the author can delete this quack');
+    super('Only the author or an admin can delete this quack');
   }
 }

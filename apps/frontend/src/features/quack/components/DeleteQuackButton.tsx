@@ -16,7 +16,12 @@ import { Button } from "@/components/ui/button"
 
 import { useDeleteQuack } from "@/features/quack/hooks/useDeleteQuack"
 
-type DeleteQuackButtonProps = { quackId: string }
+type DeleteQuackButtonProps = {
+  quackId: string
+  // Set when an admin deletes someone else's quack, so the confirmation names
+  // whose quack it is. Left out for the signed-in user's own quack.
+  author?: { name: string; username: string }
+}
 
 // The quack this button sits in vanishes on success, taking focus with it.
 // Move it to the next quack (or the previous one, or the page heading) so a
@@ -37,7 +42,7 @@ function focusAfterRemoval(trigger: HTMLElement | null) {
     })
 }
 
-export function DeleteQuackButton({ quackId }: DeleteQuackButtonProps) {
+export function DeleteQuackButton({ quackId, author }: DeleteQuackButtonProps) {
   const deleteQuack = useDeleteQuack()
   const triggerRef = useRef<HTMLButtonElement>(null)
 
@@ -73,7 +78,11 @@ export function DeleteQuackButton({ quackId }: DeleteQuackButtonProps) {
         </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this quack?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {author
+                ? `Delete ${author.name}'s (@${author.username}) quack?`
+                : "Delete this quack?"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
               It disappears from the feed for everyone, with any question and votes on it. This
               can&apos;t be undone.
