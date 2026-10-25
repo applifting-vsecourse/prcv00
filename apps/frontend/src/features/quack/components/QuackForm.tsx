@@ -1,4 +1,4 @@
-import { useEffect, useId } from "react"
+import { useEffect, useId, type RefObject } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { ListChecks, Loader2, Plus, X } from "lucide-react"
 import { useFieldArray, useForm, useWatch } from "react-hook-form"
@@ -73,9 +73,11 @@ type QuackFormProps = {
   className?: string
   // The user's default mood from Settings; null or omitted means no mood.
   defaultMood?: QuackMood | null
+  // Lets the page move the cursor into the new-quack box (e.g. "Write your first quack").
+  textRef?: RefObject<HTMLTextAreaElement | null>
 }
 
-export function QuackForm({ className, defaultMood = null }: QuackFormProps) {
+export function QuackForm({ className, defaultMood = null, textRef }: QuackFormProps) {
   const addQuack = useAddQuack()
   const moodLabelId = useId()
   const form = useForm<FormValues>({
@@ -166,6 +168,11 @@ export function QuackForm({ className, defaultMood = null }: QuackFormProps) {
                   placeholder="Quack something..."
                   readOnly={isPosting}
                   {...field}
+                  // The form's own ref (for its focus handling) and the page's.
+                  ref={(element) => {
+                    field.ref(element)
+                    if (textRef) textRef.current = element
+                  }}
                 />
               </FormControl>
               <FormMessage />

@@ -66,13 +66,18 @@ export class QuackRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   // viewerId: whose own poll votes to include ("which answer did I pick").
+  // authorId: only this author's quacks; combines with the search.
   async getQuacks(filter: {
     search?: string;
     viewerId: string;
+    authorId?: string;
   }): Promise<Quack[]> {
-    const where = filter.search
-      ? buildSearchWhere(escapeLikePattern(filter.search))
-      : undefined;
+    const where: Prisma.QuackWhereInput = {
+      AND: [
+        filter.search ? buildSearchWhere(escapeLikePattern(filter.search)) : {},
+        filter.authorId ? { userId: filter.authorId } : {},
+      ],
+    };
     const quacks = await this.prisma.quack.findMany({
       where,
       include: quackInclude(filter.viewerId),
@@ -109,5 +114,23 @@ export class QuackRepository {
       include: quackInclude(createQuackData.userId),
     });
     return mapPrismaQuackToDomain(quack);
+  }
+
+  async findAuthorId(quackId: string): Promise<string | null> {
+    const quack = await this.prisma.quack.findUnique({
+      where: { id: quackId },
+      select: { userId: true },
+    });
+    return quack?.userId ?? null;
+  }
+
+  // The author is part of the delete itself, so even a request that slipped
+  // past the service's check can only ever remove the caller's own quack.
+  // Its poll, answers and votes go with it (onDelete: Cascade).
+  async deleteQuack(quackId: string, userId: string): Promise<boolean> {
+    const { count } = await this.prisma.quack.deleteMany({
+      where: { id: quackId, userId },
+    });
+    return count > 0;
   }
 }

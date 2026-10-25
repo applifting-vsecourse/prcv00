@@ -2,6 +2,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { formatDate } from "@/lib/date"
 
 import type { Quack } from "@/features/quack/api/quackSchemas"
+import { DeleteQuackButton } from "@/features/quack/components/DeleteQuackButton"
 import { HighlightedText } from "@/features/quack/components/HighlightedText"
 import { PollView } from "@/features/quack/components/PollView"
 import { QuackMoodBadge } from "@/features/quack/components/QuackMoodBadge"
@@ -20,6 +21,8 @@ type QuackItemProps = {
 
 export function QuackItem({ quack, highlight, currentUserId, isReadOnly }: QuackItemProps) {
   const { name, username } = quack.user
+  // The server decides for real (403 otherwise); this only decides what to offer.
+  const isAuthor = currentUserId !== undefined && quack.userId === currentUserId
 
   const initials = name
     .split(" ")
@@ -72,9 +75,14 @@ export function QuackItem({ quack, highlight, currentUserId, isReadOnly }: Quack
               <QuackPoll
                 poll={quack.poll}
                 highlight={highlight}
-                isAuthor={quack.userId === currentUserId}
+                isAuthor={isAuthor}
               />
             )}
+          </div>
+        ) : null}
+        {isAuthor && !isReadOnly ? (
+          <div className="mt-1">
+            <DeleteQuackButton quackId={quack.id} />
           </div>
         ) : null}
       </div>

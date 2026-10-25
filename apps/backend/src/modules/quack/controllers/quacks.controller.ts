@@ -1,3 +1,7 @@
+import {
+  NotQuackAuthorError,
+  QuackNotFoundError,
+} from '@/modules/quack/domain/quack';
 import { QuacksService } from '@/modules/quack/services/quacks.service';
 import { User } from '@/shared/auth/decorators/user.decorator';
 import { Identity } from '@/shared/auth/domain/identity';
@@ -5,9 +9,13 @@ import { AuthenticatedUserGuard } from '@/shared/auth/guards/authenticated-user.
 import {
   Body,
   Controller,
+  Delete,
+  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
+  NotFoundException,
+  Param,
   Post,
   Query,
   UseGuards,
@@ -40,10 +48,14 @@ export class QuacksController {
 
   @Get()
   @ApiOperation({
-    summary: 'List quacks, optionally filtered by a search term',
+    summary:
+      'List quacks, optionally only your own and/or filtered by a search term',
   })
   @ApiResponse({ status: 200, type: [QuackResponseDto] })
-  @ApiResponse({ status: 400, description: 'Search term too long' })
+  @ApiResponse({
+    status: 400,
+    description: 'Search term too long, or mine is not true/false',
+  })
   @ApiResponse({ status: 401, description: 'Not signed in' })
   async list(
     @User() user: Identity,
@@ -51,6 +63,7 @@ export class QuacksController {
   ): Promise<QuackResponseDto[]> {
     const quacks = await this.quacksService.getQuacks(user, {
       search: query.q,
+      mine: query.mine,
     });
     return quacks.map(QuackResponseDto.fromDomain);
   }
@@ -71,5 +84,29 @@ export class QuacksController {
       poll: body.poll ? { options: body.poll.options } : null,
     });
     return QuackResponseDto.fromDomain(quack);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete your own quack (with its poll and votes)' })
+  @ApiResponse({ status: 204, description: 'Deleted' })
+  @ApiResponse({ status: 401, description: 'Not signed in' })
+  @ApiResponse({ status: 403, description: "Someone else's quack" })
+  @ApiResponse({
+    status: 404,
+    description: 'No such quack (or already deleted)',
+  })
+  async delete(@User() user: Identity, @Param('id') id: string): Promise<void> {
+    try {
+      await this.quacksService.deleteQuack(user, id);
+    } catch (error) {
+      if (error instanceof NotQuackAuthorError) {
+        throw new ForbiddenException(error.message);
+      }
+      if (error instanceof QuackNotFoundError) {
+        throw new NotFoundException(error.message);
+      }
+      throw error;
+    }
   }
 }
