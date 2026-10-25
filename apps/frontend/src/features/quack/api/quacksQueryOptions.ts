@@ -7,18 +7,22 @@ import { quacksSchema, type Quack } from "@/features/quack/api/quackSchemas"
 
 // What a quack list query holds. Poll votes update these entries in place
 // (useVote), so the shape is named once here rather than copied there.
-export type QuacksData = { search?: string; quacks: Quack[] }
+export type QuacksData = { search?: string; isMine?: boolean; quacks: Quack[] }
 
-export const quacksQueryOptions = (search?: string) =>
+// isMine: only the signed-in user's quacks (the Mine tab).
+export const quacksQueryOptions = (search?: string, isMine = false) =>
   queryOptions({
-    queryKey: quackKeys.list(search),
+    queryKey: quackKeys.list(search, isMine),
     queryFn: async (): Promise<QuacksData> => {
-      const searchParams = search ? { q: search } : undefined
+      const searchParams = {
+        ...(search ? { q: search } : {}),
+        ...(isMine ? { mine: "true" } : {}),
+      }
       const quacks = quacksSchema.parse(await api.get("quacks", { searchParams }).json())
-      // The term travels with its results: while the next search loads, the
-      // previous results stay on screen (placeholderData) and must keep their
-      // own count and highlights rather than the term still being fetched.
-      return { search, quacks }
+      // The term and tab travel with their results: while the next list loads,
+      // the previous results stay on screen (placeholderData) and must keep
+      // their own count, highlights and empty state, not those being fetched.
+      return { search, isMine, quacks }
     },
     placeholderData: keepPreviousData,
   })

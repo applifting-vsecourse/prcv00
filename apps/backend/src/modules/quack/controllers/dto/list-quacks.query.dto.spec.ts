@@ -30,4 +30,18 @@ describe('ListQuacksQueryDto', () => {
     const { errors } = await parse({ q: 'a'.repeat(101) });
     expect(errors).toHaveLength(1);
   });
+
+  it.each([
+    ['true', true],
+    ['false', false],
+  ])('reads mine=%s as %s', async (input, expected) => {
+    const { dto, errors } = await parse({ mine: input });
+    expect(errors).toHaveLength(0);
+    expect(dto.mine).toBe(expected);
+  });
+
+  it.each(['yes', '1', ''])('rejects mine=%j', async (input) => {
+    const { errors } = await parse({ mine: input });
+    expect(errors).toHaveLength(1);
+  });
 });

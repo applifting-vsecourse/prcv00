@@ -17,6 +17,10 @@ type QuackListProps = {
   onClearSearch?: () => void
   // The signed-in user, so their own questions offer "Close question".
   currentUserId?: string
+  // These are the signed-in user's own quacks (the Mine tab).
+  isMine?: boolean
+  // Takes the user to the new-quack box; offered when Mine is empty.
+  onWriteFirst?: () => void
 }
 
 export function QuackList({
@@ -27,6 +31,8 @@ export function QuackList({
   search: rawSearch,
   onClearSearch,
   currentUserId,
+  isMine,
+  onWriteFirst,
 }: QuackListProps) {
   const highlight = rawSearch ? toMatchTerm(rawSearch) : ""
   // A lone "@" filters nothing on the server, so it is not a search here either.
@@ -84,7 +90,22 @@ export function QuackList({
         </div>
       ) : null}
 
-      {isEmpty && !search ? (
+      {isEmpty && !search && isMine ? (
+        <div className="flex flex-col items-center gap-3 py-8">
+          <p className="text-sm text-muted-foreground">You haven&apos;t posted any quacks yet.</p>
+          {onWriteFirst ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onWriteFirst}
+            >
+              Write your first quack
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+
+      {isEmpty && !search && !isMine ? (
         <p className="py-8 text-center text-sm text-muted-foreground">
           No quacks yet. Post the first one.
         </p>

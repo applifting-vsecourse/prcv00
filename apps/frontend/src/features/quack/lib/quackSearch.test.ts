@@ -23,6 +23,18 @@ describe("parseQuacksSearch", () => {
     const long = "a".repeat(SEARCH_MAX_LENGTH) + "b".repeat(50)
     expect(parseQuacksSearch({ q: long })).toEqual({ q: "a".repeat(SEARCH_MAX_LENGTH) })
   })
+
+  it("keeps the Mine tab, together with a search", () => {
+    expect(parseQuacksSearch({ tab: "mine" })).toEqual({ tab: "mine" })
+    expect(parseQuacksSearch({ q: "duck", tab: "mine" })).toEqual({ q: "duck", tab: "mine" })
+  })
+
+  it.each([{ tab: "all" }, { tab: "MINE" }, { tab: "theirs" }, { tab: 1 }])(
+    "treats %j as the All tab",
+    (search) => {
+      expect(parseQuacksSearch(search)).toEqual({})
+    },
+  )
 })
 
 describe("toMatchTerm", () => {

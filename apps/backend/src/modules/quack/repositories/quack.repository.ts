@@ -66,13 +66,18 @@ export class QuackRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   // viewerId: whose own poll votes to include ("which answer did I pick").
+  // authorId: only this author's quacks; combines with the search.
   async getQuacks(filter: {
     search?: string;
     viewerId: string;
+    authorId?: string;
   }): Promise<Quack[]> {
-    const where = filter.search
-      ? buildSearchWhere(escapeLikePattern(filter.search))
-      : undefined;
+    const where: Prisma.QuackWhereInput = {
+      AND: [
+        filter.search ? buildSearchWhere(escapeLikePattern(filter.search)) : {},
+        filter.authorId ? { userId: filter.authorId } : {},
+      ],
+    };
     const quacks = await this.prisma.quack.findMany({
       where,
       include: quackInclude(filter.viewerId),

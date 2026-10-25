@@ -57,6 +57,61 @@ describe("QuackList", () => {
     expect(onReload).toHaveBeenCalledOnce()
   })
 
+  describe("on the Mine tab", () => {
+    it("says I haven't posted yet and offers to write the first quack", async () => {
+      const onWriteFirst = vi.fn()
+      render(
+        <QuackList
+          quacks={[]}
+          isMine
+          onWriteFirst={onWriteFirst}
+        />,
+      )
+
+      expect(screen.getByText("You haven't posted any quacks yet.")).toBeInTheDocument()
+      expect(screen.queryByText(/No quacks yet/)).not.toBeInTheDocument()
+      await userEvent.click(screen.getByRole("button", { name: "Write your first quack" }))
+      expect(onWriteFirst).toHaveBeenCalledTimes(1)
+    })
+
+    it("shows the usual no-match state for a search with no quacks of mine", () => {
+      render(
+        <QuackList
+          quacks={[]}
+          isMine
+          search="pond"
+          onClearSearch={vi.fn()}
+          onWriteFirst={vi.fn()}
+        />,
+      )
+
+      expect(screen.getByText("No quacks match “pond”.")).toBeInTheDocument()
+      expect(screen.getByRole("button", { name: "Clear search" })).toBeInTheDocument()
+      expect(
+        screen.queryByRole("button", { name: "Write your first quack" }),
+      ).not.toBeInTheDocument()
+    })
+
+    it("shows no empty state while loading", () => {
+      render(
+        <QuackList
+          quacks={[]}
+          isMine
+          isLoading
+          onWriteFirst={vi.fn()}
+        />,
+      )
+
+      expect(screen.queryByText("You haven't posted any quacks yet.")).not.toBeInTheDocument()
+    })
+  })
+
+  it("keeps the usual empty state on the All tab", () => {
+    render(<QuackList quacks={[]} />)
+
+    expect(screen.getByText("No quacks yet. Post the first one.")).toBeInTheDocument()
+  })
+
   describe("while searching", () => {
     it("shows the result count (AC14)", () => {
       const { rerender } = render(

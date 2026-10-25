@@ -21,11 +21,13 @@ export class QuacksService {
 
   async getQuacks(
     viewer: Identity,
-    filter: { search?: string } = {},
+    filter: { search?: string; mine?: boolean } = {},
   ): Promise<Quack[]> {
     return this.quackRepository.getQuacks({
       search: normalizeSearchTerm(filter.search),
       viewerId: viewer.id,
+      // "Mine" is always the session's user, never an id from the request.
+      authorId: filter.mine ? viewer.id : undefined,
     });
   }
 

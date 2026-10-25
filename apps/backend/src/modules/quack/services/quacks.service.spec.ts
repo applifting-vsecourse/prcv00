@@ -59,6 +59,32 @@ describe('QuacksService', () => {
     });
   });
 
+  it("limits the feed to the viewer's own quacks, also while searching", async () => {
+    const repository = mock<QuackRepository>();
+    repository.getQuacks.mockResolvedValue([]);
+
+    await new QuacksService(repository).getQuacks(viewer, {
+      search: 'duck',
+      mine: true,
+    });
+
+    // "Mine" is the session's user — there is no way to ask for someone else's.
+    expect(repository.getQuacks).toHaveBeenCalledWith({
+      search: 'duck',
+      viewerId: 'viewer-1',
+      authorId: 'viewer-1',
+    });
+  });
+
+  it('shows everyone when mine is false', async () => {
+    const repository = mock<QuackRepository>();
+    repository.getQuacks.mockResolvedValue([]);
+
+    await new QuacksService(repository).getQuacks(viewer, { mine: false });
+
+    expect(repository.getQuacks.mock.calls[0][0].authorId).toBeUndefined();
+  });
+
   it.each(['', '   ', '@', ' @ '])(
     'treats %j as no search (full feed)',
     async (input) => {
