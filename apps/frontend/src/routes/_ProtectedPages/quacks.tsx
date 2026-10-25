@@ -86,6 +86,7 @@ function QuacksPage() {
               onClearSearch={() => setSearch("")}
               onWriteFirst={() => newQuackRef.current?.focus()}
               currentUserId={user?.id}
+              isAdmin={user?.role === "admin"}
             />
           </TabsContent>
         </Tabs>

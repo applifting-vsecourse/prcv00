@@ -182,6 +182,40 @@ describe('QuacksService', () => {
       expect(repository.deleteQuack).not.toHaveBeenCalled();
     });
 
+    it("lets an admin delete someone else's quack, scoped to its author", async () => {
+      const admin = { id: 'admin-1', role: 'admin' } as Identity;
+      const repository = mock<QuackRepository>();
+      repository.findAuthorId.mockResolvedValue('u1');
+      repository.deleteQuack.mockResolvedValue(true);
+
+      await expect(
+        new QuacksService(repository).deleteQuack(admin, 'q1'),
+      ).resolves.toBeUndefined();
+      expect(repository.deleteQuack).toHaveBeenCalledWith('q1', 'u1');
+    });
+
+    it('lets an admin delete their own quack', async () => {
+      const admin = { id: 'admin-1', role: 'admin' } as Identity;
+      const repository = mock<QuackRepository>();
+      repository.findAuthorId.mockResolvedValue('admin-1');
+      repository.deleteQuack.mockResolvedValue(true);
+
+      await new QuacksService(repository).deleteQuack(admin, 'q1');
+
+      expect(repository.deleteQuack).toHaveBeenCalledWith('q1', 'admin-1');
+    });
+
+    it("refuses someone else's quack to a user who is not an admin", async () => {
+      const user = { id: 'u2', role: 'user' } as Identity;
+      const repository = mock<QuackRepository>();
+      repository.findAuthorId.mockResolvedValue('u1');
+
+      await expect(
+        new QuacksService(repository).deleteQuack(user, 'q1'),
+      ).rejects.toBeInstanceOf(NotQuackAuthorError);
+      expect(repository.deleteQuack).not.toHaveBeenCalled();
+    });
+
     it('reports a quack that does not exist', async () => {
       const repository = mock<QuackRepository>();
       repository.findAuthorId.mockResolvedValue(null);

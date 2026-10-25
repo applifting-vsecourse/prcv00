@@ -11,13 +11,13 @@ import { QuackList } from "@/features/quack/components/QuackList"
 
 vi.mock("@/features/quack/api/deleteQuack", () => ({ deleteQuack: vi.fn() }))
 
-const aQuack = (id: string, text: string, userId: string): Quack => ({
+const aQuack = (id: string, text: string, userId: string, name = userId): Quack => ({
   id,
   text,
   mood: null,
   userId,
   createdAt: new Date("2026-10-20T12:00:00Z"),
-  user: { id: userId, name: userId, username: userId },
+  user: { id: userId, name, username: userId },
   poll: null,
 })
 
@@ -25,7 +25,7 @@ const listKey = quackKeys.list(undefined)
 
 // The feed as the page renders it: from the cached list, so removing the
 // quack from the cache shows up as it disappearing from the screen.
-function Feed() {
+function Feed({ isAdmin }: { isAdmin: boolean }) {
   const queryClient = useQueryClient()
   const { data } = useQuery({
     queryKey: listKey,
@@ -38,23 +38,24 @@ function Feed() {
       <QuackList
         quacks={data?.quacks ?? []}
         currentUserId="me"
+        isAdmin={isAdmin}
       />
     </main>
   )
 }
 
-const renderFeed = () => {
+const renderFeed = ({ isAdmin = false } = {}) => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   queryClient.setQueryData<QuacksData>(listKey, {
     quacks: [
       aQuack("q1", "my first quack", "me"),
-      aQuack("q2", "someone else's quack", "other"),
+      aQuack("q2", "someone else's quack", "jane", "Jane Doe"),
       aQuack("q3", "my second quack", "me"),
     ],
   })
   render(
     <QueryClientProvider client={queryClient}>
-      <Feed />
+      <Feed isAdmin={isAdmin} />
     </QueryClientProvider>,
   )
 }
@@ -65,9 +66,9 @@ const deleteButtonOf = (text: string) => {
   return within(article).getByRole("button", { name: "Delete quack" })
 }
 
-const confirm = async (buttonName: "Delete" | "Keep it") => {
+const confirm = async (buttonName: "Delete" | "Keep it", title = "Delete this quack?") => {
   const dialog = await screen.findByRole("alertdialog")
-  expect(within(dialog).getByText("Delete this quack?")).toBeInTheDocument()
+  expect(within(dialog).getByText(title)).toBeInTheDocument()
   await userEvent.click(within(dialog).getByRole("button", { name: buttonName }))
 }
 
@@ -122,5 +123,46 @@ describe("Deleting a quack", () => {
       "Couldn't delete the quack. Try again.",
     )
     expect(screen.getByText("my second quack")).toBeInTheDocument()
+  })
+})
+
+describe("Deleting a quack as an admin", () => {
+  it("offers Delete on every quack, someone else's included", () => {
+    renderFeed({ isAdmin: true })
+
+    expect(screen.getAllByRole("button", { name: "Delete quack" })).toHaveLength(3)
+  })
+
+  it("names the author before deleting someone else's quack", async () => {
+    vi.mocked(deleteQuack).mockResolvedValue(undefined)
+    renderFeed({ isAdmin: true })
+
+    await userEvent.click(deleteButtonOf("someone else's quack"))
+    await confirm("Delete", "Delete Jane Doe's (@jane) quack?")
+
+    expect(deleteQuack).toHaveBeenCalledWith("q2")
+    await waitFor(() => expect(screen.queryByText("someone else's quack")).not.toBeInTheDocument())
+  })
+
+  it("asks the usual question for their own quack", async () => {
+    renderFeed({ isAdmin: true })
+
+    await userEvent.click(deleteButtonOf("my first quack"))
+    await confirm("Keep it", "Delete this quack?")
+
+    expect(deleteQuack).not.toHaveBeenCalled()
+  })
+
+  it("keeps the quack and says so when the server refuses (no longer an admin)", async () => {
+    vi.mocked(deleteQuack).mockRejectedValue(new Error("Forbidden"))
+    renderFeed({ isAdmin: true })
+
+    await userEvent.click(deleteButtonOf("someone else's quack"))
+    await confirm("Delete", "Delete Jane Doe's (@jane) quack?")
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Couldn't delete the quack. Try again.",
+    )
+    expect(screen.getByText("someone else's quack")).toBeInTheDocument()
   })
 })

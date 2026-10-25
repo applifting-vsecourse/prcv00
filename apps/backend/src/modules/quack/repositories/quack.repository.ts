@@ -125,7 +125,8 @@ export class QuackRepository {
   }
 
   // The author is part of the delete itself, so even a request that slipped
-  // past the service's check can only ever remove the caller's own quack.
+  // past the service's check can only ever remove that author's quack (the
+  // caller's own, unless the caller is an admin).
   // Its poll, answers and votes go with it (onDelete: Cascade).
   async deleteQuack(quackId: string, userId: string): Promise<boolean> {
     const { count } = await this.prisma.quack.deleteMany({

@@ -17,6 +17,8 @@ type QuackListProps = {
   onClearSearch?: () => void
   // The signed-in user, so their own questions offer "Close question".
   currentUserId?: string
+  // The signed-in user is an admin, so every quack offers Delete.
+  isAdmin?: boolean
   // These are the signed-in user's own quacks (the Mine tab).
   isMine?: boolean
   // Takes the user to the new-quack box; offered when Mine is empty.
@@ -31,6 +33,7 @@ export function QuackList({
   search: rawSearch,
   onClearSearch,
   currentUserId,
+  isAdmin,
   isMine,
   onWriteFirst,
 }: QuackListProps) {
@@ -117,6 +120,7 @@ export function QuackList({
           quack={quack}
           highlight={highlight || undefined}
           currentUserId={currentUserId}
+          isAdmin={isAdmin}
         />
       ))}
     </div>

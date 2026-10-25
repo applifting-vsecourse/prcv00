@@ -6,3 +6,8 @@ export class Identity {
     public readonly role: string,
   ) {}
 }
+
+// A function, not a getter: the identity handed to controllers is the plain
+// session user from better-auth, not an instance of this class.
+export const isAdmin = (identity: Identity): boolean =>
+  identity.role === 'admin';
