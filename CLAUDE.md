@@ -40,12 +40,16 @@ Stories in `docs/stories/` are read by the product owner, not by developers. The
 
 It becomes `ILIKE '%term%'` with the term inserted as-is, so a user searching for `%` matches every row. Escape `\`, `%` and `_` before passing user input to `contains`/`startsWith`/`endsWith` (see `escapeLikePattern` in the quack repository).
 
+### A component that disappears on success uses `mutateAsync`
+
+Callbacks passed per call, as in `mutate(vars, { onSuccess })`, never run once the component has unmounted, and a delete button unmounts the moment its quack leaves the list. Use `mutateAsync(vars).then(…)` there (see `DeleteQuackButton`), or put the logic in the hook's own `onSuccess`, which always runs.
+
 ### Permissions are decided on the server, and the write is scoped too
 
 Who may change something (the owner, or a role such as `admin`) is checked in the service, never only in React; hiding a button is convenience. Also put the owner into the write itself, as in `deleteMany({ where: { id, userId } })` in the quack repository, so a check that is wrong or switched off still can't touch someone else's data. "Me" always comes from the session (`@User()`), never from a `userId` in the URL or body. An E2E test for a permission asserts the server's status code (403, 204), not only that something vanished from the screen: a feed that failed to load "passes" that too.
 
 ### The app is already running
 
-Assume the dev servers are up. If something is listening on the app's ports, that is this application: use it. Don't start a second instance, don't restart it, don't run `pnpm dev`.
+Assume the dev servers are up, but check that what answers is this application before you rely on it: other projects built from the same template use the same ports (3050/4050) and can even share the database. Quacker's page title is `Quacker` and `GET /api/quacks` answers 401 when signed out. Don't start a second instance, don't restart it, don't run `pnpm dev`.
 
 Don't reach for the browser to check your own work. Tests and type-checks are the evidence; open the running app when asked to, not on your own initiative.
