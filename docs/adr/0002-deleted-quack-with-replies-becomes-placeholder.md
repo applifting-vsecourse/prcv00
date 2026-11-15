@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed, 2026-11-15. From the replies design ([story](../stories/quack-replies.md), decisions 3, 4 and 6). It becomes Accepted when the replies migration is merged.
+Accepted, 2026-11-15. From the replies design ([story](../stories/quack-replies.md), decisions 3, 4 and 6). Implemented by migration `20261115124322_quack_replies` and `QuackRepository.deleteQuack`.
 
 ## Context
 
