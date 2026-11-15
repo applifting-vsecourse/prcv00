@@ -40,8 +40,12 @@ model Quack {
   createdAt DateTime   @default(now())
   updatedAt DateTime   @default(now()) @updatedAt
   poll      Poll?
+  // Derived from `text` when the quack is posted (lowercase, each once); see
+  // extractHashtags. Quacks can't be edited, so it never goes stale.
+  hashtags  String[]   @default([])
 
   @@index([userId])
+  @@index([hashtags], type: Gin)
   @@map("quack")
 }
 

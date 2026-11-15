@@ -49,12 +49,13 @@ export class QuacksController {
   @Get()
   @ApiOperation({
     summary:
-      'List quacks, optionally only your own and/or filtered by a search term',
+      'List quacks, optionally only your own, with a hashtag and/or matching a search term',
   })
   @ApiResponse({ status: 200, type: [QuackResponseDto] })
   @ApiResponse({
     status: 400,
-    description: 'Search term too long, or mine is not true/false',
+    description:
+      'Search term too long, mine is not true/false, or tag is not a hashtag',
   })
   @ApiResponse({ status: 401, description: 'Not signed in' })
   async list(
@@ -64,6 +65,7 @@ export class QuacksController {
     const quacks = await this.quacksService.getQuacks(user, {
       search: query.q,
       mine: query.mine,
+      tag: query.tag,
     });
     return quacks.map(QuackResponseDto.fromDomain);
   }

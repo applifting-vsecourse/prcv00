@@ -1,6 +1,6 @@
 export const quackKeys = {
   all: () => ["quacks"] as const,
   lists: () => [...quackKeys.all(), "list"] as const,
-  list: (search?: string, isMine?: boolean) =>
-    [...quackKeys.lists(), { search, isMine: isMine === true }] as const,
+  list: (search?: string, isMine?: boolean, tag?: string) =>
+    [...quackKeys.lists(), { search, isMine: isMine === true, tag }] as const,
 }

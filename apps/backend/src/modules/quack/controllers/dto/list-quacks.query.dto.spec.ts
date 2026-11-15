@@ -44,4 +44,35 @@ describe('ListQuacksQueryDto', () => {
     const { errors } = await parse({ mine: input });
     expect(errors).toHaveLength(1);
   });
+
+  describe('tag', () => {
+    it.each(['vse', '#vse', 'VSE', 'čeština', 'snake_case', '2026vse'])(
+      'accepts tag=%j',
+      async (input) => {
+        const { dto, errors } = await parse({ tag: input });
+        expect(errors).toHaveLength(0);
+        expect(dto.tag).toBe(input);
+      },
+    );
+
+    it('trims the tag', async () => {
+      const { dto, errors } = await parse({ tag: '  vse ' });
+      expect(errors).toHaveLength(0);
+      expect(dto.tag).toBe('vse');
+    });
+
+    it.each(['', '   '])('treats tag=%j as no filter', async (input) => {
+      const { dto, errors } = await parse({ tag: input });
+      expect(errors).toHaveLength(0);
+      expect(dto.tag).toBeUndefined();
+    });
+
+    it.each(['two words', '##vse', 'vse#', '#', '%', 'a-b', 'a'.repeat(101)])(
+      'rejects tag=%j',
+      async (input) => {
+        const { errors } = await parse({ tag: input });
+        expect(errors.map((e) => e.property)).toEqual(['tag']);
+      },
+    );
+  });
 });

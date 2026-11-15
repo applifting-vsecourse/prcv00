@@ -1,5 +1,6 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { Quack } from '@/generated/prisma/client';
+import { extractHashtags } from '@/modules/quack/domain/hashtag';
 import { QuackMood } from '@/modules/quack/domain/quack';
 
 type CreateQuackParams = {
@@ -27,6 +28,8 @@ export async function createQuack(
     data: {
       text,
       mood,
+      // Same rule as posting through the API, so seeded tags are clickable.
+      hashtags: extractHashtags(text),
       createdAt,
       user: {
         connect: {

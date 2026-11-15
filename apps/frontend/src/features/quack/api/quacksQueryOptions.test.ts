@@ -41,6 +41,21 @@ describe("quacksQueryOptions", () => {
     expect(data).toEqual({ search: "duck", isMine: true, quacks: [] })
   })
 
+  it("asks for one hashtag's quacks, and keeps the tag with its results", async () => {
+    const params = stubFetch()
+
+    const data = await new QueryClient().fetchQuery(quacksQueryOptions(undefined, false, "vse"))
+
+    expect(params().get("tag")).toBe("vse")
+    expect(data).toEqual({ search: undefined, isMine: false, tag: "vse", quacks: [] })
+  })
+
+  it("keeps each hashtag in its own cache entry", () => {
+    expect(quacksQueryOptions(undefined, false, "vse").queryKey).not.toEqual(
+      quacksQueryOptions(undefined, false, "pond").queryKey,
+    )
+  })
+
   it("keeps the two tabs in separate cache entries", () => {
     expect(quacksQueryOptions("duck", true).queryKey).not.toEqual(
       quacksQueryOptions("duck", false).queryKey,

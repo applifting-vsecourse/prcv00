@@ -1,4 +1,8 @@
 import {
+  extractHashtags,
+  normalizeHashtag,
+} from '@/modules/quack/domain/hashtag';
+import {
   NotQuackAuthorError,
   Quack,
   QuackMood,
@@ -15,19 +19,26 @@ const normalizeSearchTerm = (search?: string): string | undefined => {
   return term ? term : undefined;
 };
 
+// A link carries "vse", but "#vse" or "#VSE" typed into the URL works too.
+const normalizeTagFilter = (tag?: string): string | undefined => {
+  const body = tag?.trim().replace(/^#/, '');
+  return body ? normalizeHashtag(body) : undefined;
+};
+
 @Injectable()
 export class QuacksService {
   constructor(private readonly quackRepository: QuackRepository) {}
 
   async getQuacks(
     viewer: Identity,
-    filter: { search?: string; mine?: boolean } = {},
+    filter: { search?: string; mine?: boolean; tag?: string } = {},
   ): Promise<Quack[]> {
     return this.quackRepository.getQuacks({
       search: normalizeSearchTerm(filter.search),
       viewerId: viewer.id,
       // "Mine" is always the session's user, never an id from the request.
       authorId: filter.mine ? viewer.id : undefined,
+      hashtag: normalizeTagFilter(filter.tag),
     });
   }
 
@@ -45,6 +56,9 @@ export class QuacksService {
       poll: quackData.poll,
       // the author is taken from the session, never from the request body
       userId: user.id,
+      // Read from the text here, never sent by the client, so the stored tags
+      // always match what the quack says.
+      hashtags: extractHashtags(quackData.text),
     });
   }
 

@@ -67,15 +67,19 @@ export class QuackRepository {
 
   // viewerId: whose own poll votes to include ("which answer did I pick").
   // authorId: only this author's quacks; combines with the search.
+  // hashtag: only quacks with this (normalized) hashtag; combines with both.
   async getQuacks(filter: {
     search?: string;
     viewerId: string;
     authorId?: string;
+    hashtag?: string;
   }): Promise<Quack[]> {
     const where: Prisma.QuackWhereInput = {
       AND: [
         filter.search ? buildSearchWhere(escapeLikePattern(filter.search)) : {},
         filter.authorId ? { userId: filter.authorId } : {},
+        // Whole-value match on the array (GIN index), so no LIKE escaping.
+        filter.hashtag ? { hashtags: { has: filter.hashtag } } : {},
       ],
     };
     const quacks = await this.prisma.quack.findMany({
@@ -91,11 +95,13 @@ export class QuackRepository {
     mood: QuackMood | null;
     userId: string;
     poll: { options: string[] } | null;
+    hashtags: string[];
   }): Promise<Quack> {
     const quack = await this.prisma.quack.create({
       data: {
         text: createQuackData.text,
         mood: createQuackData.mood,
+        hashtags: createQuackData.hashtags,
         user: { connect: { id: createQuackData.userId } },
         // Created in the same write: a question is never posted without its
         // answers, or answers without their question.
