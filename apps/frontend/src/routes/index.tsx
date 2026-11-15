@@ -16,9 +16,19 @@ export const Route = createFileRoute("/")({
 
 // Static sample for the preview below. It renders through the same <Quack />
 // component as the real feed, so the landing page can never drift from it.
+// None of the samples is a reply or has any; the preview offers no Reply.
+const CONVERSATION_START = {
+  isDeleted: false,
+  parentId: null,
+  root: null,
+  replyTo: null,
+  replyCount: 0,
+} as const
+
 const SAMPLE_QUACKS: Quack[] = [
   {
     id: "sample-1",
+    ...CONVERSATION_START,
     text: "me: throws one crumb into the pond\nducks: assemble like the Avengers\ni fear i may have started something",
     mood: "happy",
     userId: "sample-user-1",
@@ -28,6 +38,7 @@ const SAMPLE_QUACKS: Quack[] = [
   },
   {
     id: "sample-poll",
+    ...CONVERSATION_START,
     text: "Lunch after the reed meeting — where do we go?",
     mood: null,
     userId: "sample-user-3",
@@ -47,6 +58,7 @@ const SAMPLE_QUACKS: Quack[] = [
   },
   {
     id: "sample-2",
+    ...CONVERSATION_START,
     text: "If ducks wore pants, would they wear them on their legs or over their whole lower half like a cape?\nAsking for a friend. A feathery friend.",
     mood: null,
     userId: "sample-user-2",

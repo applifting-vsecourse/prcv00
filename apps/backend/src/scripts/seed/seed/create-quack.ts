@@ -16,13 +16,15 @@ type CreateQuackParams = {
     votes?: { userId: string; option: number }[];
     isClosed?: boolean;
   };
+  // Makes it a reply to that seeded quack, the same way the API links one.
+  replyTo?: Quack;
 };
 
 export async function createQuack(
   prisma: PrismaService,
   params: CreateQuackParams,
 ): Promise<Quack> {
-  const { text, mood, userId, createdAt, poll } = params;
+  const { text, mood, userId, createdAt, poll, replyTo } = params;
 
   const quack = await prisma.quack.create({
     data: {
@@ -36,6 +38,12 @@ export async function createQuack(
           id: userId,
         },
       },
+      ...(replyTo
+        ? {
+            parent: { connect: { id: replyTo.id } },
+            root: { connect: { id: replyTo.rootId ?? replyTo.id } },
+          }
+        : {}),
       poll: poll
         ? {
             create: {

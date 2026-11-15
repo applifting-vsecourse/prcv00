@@ -15,6 +15,7 @@ All checked while signed in.
 3. When an admin deletes someone else's quack, the confirmation names the author with display name and username, for example "Delete Jane Doe's (@jane) quack?", with "Keep it" and "Delete". "Keep it" changes nothing.
 4. When an admin deletes their own quack, the confirmation is the usual "Delete this quack?".
 5. After an admin confirms, the quack disappears for everyone, the same way as when the author deletes it: from the feed and from search results. If it had a question with answers, the question and its votes go too. Nothing is left in its place.
+   _Changed by [replies](quack-replies.md):_ if people have replied to the quack, its replies stay, and in its place there is only "This quack was deleted", with no text, name, question or votes.
 6. The author gets no message about it. Their quack is just gone.
 7. A regular user still cannot delete someone else's quack, not even by sending the request to the server directly.
 8. If someone stops being an admin while they have the page open and then tries to delete someone else's quack, the quack stays and the usual message under it says it couldn't be deleted.

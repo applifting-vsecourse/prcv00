@@ -3,6 +3,8 @@ import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
+import { CONVERSATION_START } from "@/test/quackFixtures"
+
 import type { Quack } from "@/features/quack/api/quackSchemas"
 import { QuackList } from "@/features/quack/components/QuackList"
 
@@ -13,6 +15,7 @@ const quack = (overrides: Partial<Quack> = {}): Quack => ({
   userId: "u1",
   createdAt: new Date("2026-01-01T12:00:00Z"),
   user: { id: "u1", name: "Caffeinated Duck", username: "CaffeinatedDuck" },
+  ...CONVERSATION_START,
   poll: null,
   ...overrides,
 })
@@ -68,7 +71,7 @@ describe("QuackList", () => {
         />,
       )
 
-      expect(screen.getByText("You haven't posted any quacks yet.")).toBeInTheDocument()
+      expect(screen.getByText("You haven't posted any quacks or replies yet.")).toBeInTheDocument()
       expect(screen.queryByText(/No quacks yet/)).not.toBeInTheDocument()
       await userEvent.click(screen.getByRole("button", { name: "Write your first quack" }))
       expect(onWriteFirst).toHaveBeenCalledTimes(1)
@@ -102,7 +105,9 @@ describe("QuackList", () => {
         />,
       )
 
-      expect(screen.queryByText("You haven't posted any quacks yet.")).not.toBeInTheDocument()
+      expect(
+        screen.queryByText("You haven't posted any quacks or replies yet."),
+      ).not.toBeInTheDocument()
     })
   })
 
