@@ -29,6 +29,23 @@ describe("parseQuacksSearch", () => {
     expect(parseQuacksSearch({ q: "duck", tab: "mine" })).toEqual({ q: "duck", tab: "mine" })
   })
 
+  it("keeps a hashtag, lowercase and without the #, together with the rest", () => {
+    expect(parseQuacksSearch({ tag: "vse" })).toEqual({ tag: "vse" })
+    expect(parseQuacksSearch({ tag: "#VSE" })).toEqual({ tag: "vse" })
+    expect(parseQuacksSearch({ q: "duck", tab: "mine", tag: "pond" })).toEqual({
+      q: "duck",
+      tab: "mine",
+      tag: "pond",
+    })
+  })
+
+  it.each([{ tag: "" }, { tag: "two words" }, { tag: "a-b" }, { tag: 2026 }, { tag: null }])(
+    "ignores %j (shows all quacks)",
+    (search) => {
+      expect(parseQuacksSearch(search)).toEqual({})
+    },
+  )
+
   it.each([{ tab: "all" }, { tab: "MINE" }, { tab: "theirs" }, { tab: 1 }])(
     "treats %j as the All tab",
     (search) => {

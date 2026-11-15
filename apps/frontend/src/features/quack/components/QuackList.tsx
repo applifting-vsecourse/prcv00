@@ -23,6 +23,9 @@ type QuackListProps = {
   isMine?: boolean
   // Takes the user to the new-quack box; offered when Mine is empty.
   onWriteFirst?: () => void
+  // The hashtag these quacks were filtered by ("vse", no "#").
+  tag?: string
+  onClearTag?: () => void
 }
 
 export function QuackList({
@@ -36,6 +39,8 @@ export function QuackList({
   isAdmin,
   isMine,
   onWriteFirst,
+  tag,
+  onClearTag,
 }: QuackListProps) {
   const highlight = rawSearch ? toMatchTerm(rawSearch) : ""
   // A lone "@" filters nothing on the server, so it is not a search here either.
@@ -72,6 +77,23 @@ export function QuackList({
         </Alert>
       ) : null}
 
+      {tag ? (
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <p className="text-sm text-muted-foreground">
+            Quacks tagged <span className="font-medium text-foreground">#{tag}</span>
+          </p>
+          {onClearTag ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onClearTag}
+            >
+              Clear hashtag
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+
       {search && !error && quacks.length > 0 ? (
         <p className="mb-2 text-sm text-muted-foreground">
           {quacks.length} {quacks.length === 1 ? "quack matches" : "quacks match"} “{search}”
@@ -93,7 +115,16 @@ export function QuackList({
         </div>
       ) : null}
 
-      {isEmpty && !search && isMine ? (
+      {/* "Clear hashtag" is already in the line above, so no second button. */}
+      {isEmpty && !search && tag ? (
+        <p className="py-8 text-center text-sm text-muted-foreground">
+          {isMine
+            ? `You haven't posted any quacks tagged #${tag}.`
+            : `No quacks tagged #${tag} yet.`}
+        </p>
+      ) : null}
+
+      {isEmpty && !search && !tag && isMine ? (
         <div className="flex flex-col items-center gap-3 py-8">
           <p className="text-sm text-muted-foreground">You haven&apos;t posted any quacks yet.</p>
           {onWriteFirst ? (
@@ -108,7 +139,7 @@ export function QuackList({
         </div>
       ) : null}
 
-      {isEmpty && !search && !isMine ? (
+      {isEmpty && !search && !tag && !isMine ? (
         <p className="py-8 text-center text-sm text-muted-foreground">
           No quacks yet. Post the first one.
         </p>

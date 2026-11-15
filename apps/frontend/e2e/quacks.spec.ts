@@ -28,6 +28,40 @@ test("author can post a quack and delete it", async ({ page }) => {
   await expect(quack).toHaveCount(0)
 })
 
+test("clicking a hashtag shows only the quacks that carry it", async ({ page }) => {
+  // A tag nobody else has, so exactly one quack carries it.
+  const tag = `e2e${Date.now()}`
+  const text = `Exam done #${tag.toUpperCase()}`
+  await signIn(page, "caffeinatedduck@example.com", "password1")
+  await page.goto("/quacks")
+
+  await page.getByLabel("New quack").fill(text)
+  await page.getByRole("button", { name: "Quack", exact: true }).click()
+  const quack = page.getByRole("article").filter({ hasText: text })
+  await expect(quack).toBeVisible()
+
+  // Capitals as written in the link, lowercase in the filter.
+  const filtered = page.waitForResponse(
+    (response) => response.url().includes(`tag=${tag}`) && response.request().method() === "GET",
+  )
+  await quack.getByRole("link", { name: `#${tag.toUpperCase()}` }).click()
+  expect((await filtered).status()).toBe(200)
+
+  await expect(page).toHaveURL(new RegExp(`/quacks\\?tag=${tag}$`))
+  await expect(page.getByText("Quacks tagged")).toContainText(`#${tag}`)
+  await expect(page.getByRole("article")).toHaveCount(1)
+  await expect(quack).toBeVisible()
+
+  await page.getByRole("button", { name: "Clear hashtag" }).click()
+  await expect(page).toHaveURL(/\/quacks$/)
+  await expect(page.getByRole("article").nth(1)).toBeVisible()
+
+  // Leave the feed as it was.
+  await quack.getByRole("button", { name: "Delete quack" }).click()
+  await page.getByRole("alertdialog").getByRole("button", { name: "Delete" }).click()
+  await expect(quack).toHaveCount(0)
+})
+
 test("admin can delete someone else's quack", async ({ browser }) => {
   const text = `Spam ${Date.now()}`
   // One page holds one session, so the author and the admin each get their own.

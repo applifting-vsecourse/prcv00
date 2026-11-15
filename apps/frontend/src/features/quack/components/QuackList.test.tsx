@@ -192,4 +192,66 @@ describe("QuackList", () => {
       expect(container.querySelector("mark")).toBeNull()
     })
   })
+
+  describe("filtered by a hashtag", () => {
+    it("says which hashtag and lets you clear it", async () => {
+      const onClearTag = vi.fn()
+      render(
+        <QuackList
+          quacks={[quack()]}
+          tag="vse"
+          onClearTag={onClearTag}
+        />,
+      )
+
+      expect(screen.getByText("Quacks tagged")).toHaveTextContent("Quacks tagged #vse")
+      await userEvent.click(screen.getByRole("button", { name: "Clear hashtag" }))
+      expect(onClearTag).toHaveBeenCalledOnce()
+    })
+
+    it("says no quack has the hashtag, not that there are no quacks", () => {
+      render(
+        <QuackList
+          quacks={[]}
+          tag="vse"
+        />,
+      )
+
+      expect(screen.getByText("No quacks tagged #vse yet.")).toBeInTheDocument()
+      expect(screen.queryByText(/No quacks yet/)).not.toBeInTheDocument()
+    })
+
+    it("says so on the Mine tab", () => {
+      render(
+        <QuackList
+          quacks={[]}
+          tag="vse"
+          isMine
+        />,
+      )
+
+      expect(screen.getByText("You haven't posted any quacks tagged #vse.")).toBeInTheDocument()
+      expect(screen.queryByRole("button", { name: /first quack/ })).not.toBeInTheDocument()
+    })
+
+    it("uses the search's empty state when a search finds nothing", () => {
+      render(
+        <QuackList
+          quacks={[]}
+          tag="vse"
+          search="duck"
+          onClearSearch={vi.fn()}
+        />,
+      )
+
+      expect(screen.getByText("No quacks match “duck”.")).toBeInTheDocument()
+      expect(screen.queryByText(/No quacks tagged/)).not.toBeInTheDocument()
+    })
+
+    it("shows no hashtag line without a hashtag", () => {
+      render(<QuackList quacks={[quack()]} />)
+
+      expect(screen.queryByText("Quacks tagged")).not.toBeInTheDocument()
+    })
+  })
 })

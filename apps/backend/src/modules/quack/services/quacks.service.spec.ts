@@ -117,6 +117,7 @@ describe('QuacksService', () => {
       mood: null,
       poll: null,
       userId: 'u1',
+      hashtags: [],
     });
   });
 
@@ -136,6 +137,7 @@ describe('QuacksService', () => {
       mood: 'angry',
       poll: null,
       userId: 'u1',
+      hashtags: [],
     });
   });
 
@@ -154,6 +156,69 @@ describe('QuacksService', () => {
       mood: null,
       poll: { options: ['Pizza', 'Sushi'] },
       userId: 'u1',
+      hashtags: [],
+    });
+  });
+
+  it('stores the hashtags read from the text', async () => {
+    const repository = mock<QuackRepository>();
+    repository.createQuack.mockResolvedValue(aQuack());
+
+    await new QuacksService(repository).createQuack({ id: 'u1' } as Identity, {
+      text: 'Exam done #VSE #pond #vse',
+      mood: null,
+      poll: null,
+    });
+
+    expect(repository.createQuack.mock.calls[0][0].hashtags).toEqual([
+      'vse',
+      'pond',
+    ]);
+  });
+
+  describe('hashtag filter', () => {
+    it.each([
+      ['vse', 'vse'],
+      ['#vse', 'vse'],
+      ['VSE', 'vse'],
+      ['  #Čeština ', 'čeština'],
+    ])('filters by %j as %j', async (input, expected) => {
+      const repository = mock<QuackRepository>();
+      repository.getQuacks.mockResolvedValue([]);
+
+      await new QuacksService(repository).getQuacks(viewer, { tag: input });
+
+      expect(repository.getQuacks.mock.calls[0][0].hashtag).toBe(expected);
+    });
+
+    it.each([undefined, '', '#', '  '])(
+      'treats %j as no hashtag filter',
+      async (input) => {
+        const repository = mock<QuackRepository>();
+        repository.getQuacks.mockResolvedValue([]);
+
+        await new QuacksService(repository).getQuacks(viewer, { tag: input });
+
+        expect(repository.getQuacks.mock.calls[0][0].hashtag).toBeUndefined();
+      },
+    );
+
+    it('combines with the search and Mine', async () => {
+      const repository = mock<QuackRepository>();
+      repository.getQuacks.mockResolvedValue([]);
+
+      await new QuacksService(repository).getQuacks(viewer, {
+        search: 'exam',
+        mine: true,
+        tag: 'vse',
+      });
+
+      expect(repository.getQuacks).toHaveBeenCalledWith({
+        search: 'exam',
+        viewerId: 'viewer-1',
+        authorId: 'viewer-1',
+        hashtag: 'vse',
+      });
     });
   });
 

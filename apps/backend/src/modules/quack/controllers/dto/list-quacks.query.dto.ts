@@ -1,6 +1,13 @@
+import { HASHTAG_FILTER_PATTERN } from '@/modules/quack/domain/hashtag';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsOptional,
+  IsString,
+  Matches,
+  MaxLength,
+} from 'class-validator';
 
 export const SEARCH_MAX_LENGTH = 100;
 
@@ -34,4 +41,23 @@ export class ListQuacksQueryDto {
   )
   @IsBoolean()
   mine?: boolean;
+
+  @ApiPropertyOptional({
+    description:
+      'Only quacks with this hashtag, with or without the "#". Capitals ' +
+      "don't matter; accents do. Combines with q and mine. Blank means no filter.",
+    example: 'vse',
+    maxLength: SEARCH_MAX_LENGTH,
+  })
+  @IsOptional()
+  // Blank is "no filter", like q; trimmed so the checks apply to the tag itself.
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() || undefined : value,
+  )
+  @IsString()
+  @MaxLength(SEARCH_MAX_LENGTH)
+  @Matches(HASHTAG_FILTER_PATTERN, {
+    message: 'tag must be a single hashtag, such as vse or #vse',
+  })
+  tag?: string;
 }

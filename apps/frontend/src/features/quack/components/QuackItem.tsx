@@ -3,10 +3,10 @@ import { formatDate } from "@/lib/date"
 
 import type { Quack } from "@/features/quack/api/quackSchemas"
 import { DeleteQuackButton } from "@/features/quack/components/DeleteQuackButton"
-import { HighlightedText } from "@/features/quack/components/HighlightedText"
 import { PollView } from "@/features/quack/components/PollView"
 import { QuackMoodBadge } from "@/features/quack/components/QuackMoodBadge"
 import { QuackPoll } from "@/features/quack/components/QuackPoll"
+import { QuackText } from "@/features/quack/components/QuackText"
 import { UsersName } from "@/features/quack/components/UsersName"
 import { UsersUserName } from "@/features/quack/components/UsersUserName"
 
@@ -68,9 +68,10 @@ export function QuackItem({
           ) : null}
         </div>
         <p className="text-sm break-words whitespace-pre-line">
-          <HighlightedText
+          <QuackText
             text={quack.text}
-            term={highlight}
+            highlight={highlight}
+            shouldLinkHashtags={!isReadOnly}
           />
         </p>
         {quack.poll ? (

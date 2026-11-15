@@ -102,7 +102,7 @@ export const seedDatabase = async (
       author: pondAdmin,
       minutesAgo: 2870,
       text: `Reminder: the north end of the pond is closed for reed maintenance until Thursday.
-Yes, again. No, we don't know why the contractor is a heron.`,
+Yes, again. No, we don't know why the contractor is a heron. #PondNews`,
     },
     {
       author: migrationSeason,
@@ -116,7 +116,7 @@ The V formation works beautifully right up until whoever is at the front decides
       minutesAgo: 2255,
       mood: 'silly',
       text: `Sourdough. Thrown by a child. Landed two metres short of anyone.
-Crust: excellent. Delivery: amateur. 6/10.`,
+Crust: excellent. Delivery: amateur. 6/10. #BreadReview`,
     },
     {
       author: caffeinatedDuck,
@@ -142,7 +142,7 @@ We are not currently speaking to the front of the V.`,
       author: pondAdmin,
       minutesAgo: 890,
       text: `Whoever keeps rearranging the stones on the west bank — we see you.
-We have footage. It is extremely blurry footage. But we have it.`,
+We have footage. It is extremely blurry footage. But we have it. #pondnews`,
     },
     {
       author: caffeinatedDuck,
@@ -155,7 +155,7 @@ one of them is quacking`,
       author: breadCritic,
       minutesAgo: 415,
       text: `Multigrain. Seeds still attached. Genuinely nutritious.
-The pond is not ready for this level of quality and, frankly, neither am I. 9/10.`,
+The pond is not ready for this level of quality and, frankly, neither am I. 9/10. #BreadReview`,
     },
     {
       author: deepDuckThoughts,

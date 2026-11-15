@@ -1,0 +1,7 @@
+# Architecture decision records
+
+Decisions about the data model and the structure of the application that are expensive to undo, or that bind code beyond the feature they came from. Read the relevant ones before changing the data model or how the app is put together. Add a new record rather than rewriting an old one: a decision that is replaced gets the status "Superseded by NNNN".
+
+| #                                                | Decision                                   | Status   | In one sentence                                                                                                                                                 |
+| ------------------------------------------------ | ------------------------------------------ | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [0001](0001-hashtags-derived-column-on-quack.md) | Hashtags are a derived column on the quack | Accepted | `quack.hashtags` is a server-computed copy of the hashtags in `quack.text`, so every write that sets or clears the text must set or clear the hashtags with it. |

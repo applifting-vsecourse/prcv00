@@ -20,9 +20,9 @@ export const Route = createFileRoute("/_ProtectedPages/quacks")({
 })
 
 function QuacksPage() {
-  const { q, tab = "all" } = Route.useSearch()
+  const { q, tab = "all", tag } = Route.useSearch()
   const navigate = Route.useNavigate()
-  const quacksQuery = useQuery(quacksQueryOptions(q, tab === "mine"))
+  const quacksQuery = useQuery(quacksQueryOptions(q, tab === "mine", tag))
   // Only for the default mood: if it fails to load, posting still works.
   const profileQuery = useQuery(profileQueryOptions())
   const { user } = useSession()
@@ -39,6 +39,11 @@ function QuacksPage() {
       void navigate({
         search: (prev) => ({ ...prev, tab: value === "mine" ? ("mine" as const) : undefined }),
       }),
+    [navigate],
+  )
+  // Keeps the search and the tab, like the two above.
+  const clearTag = useCallback(
+    () => void navigate({ search: (prev) => ({ ...prev, tag: undefined }) }),
     [navigate],
   )
 
@@ -78,6 +83,9 @@ function QuacksPage() {
               quacks={quacksQuery.data?.quacks ?? []}
               search={quacksQuery.data?.search}
               isMine={quacksQuery.data?.isMine ?? tab === "mine"}
+              // The tag of the results on screen; before the first ones arrive, the URL's.
+              tag={quacksQuery.data ? quacksQuery.data.tag : tag}
+              onClearTag={clearTag}
               isLoading={quacksQuery.isLoading}
               error={quacksQuery.error ?? undefined}
               // Only the error state offers a retry — posting invalidates the list,
