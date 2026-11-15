@@ -26,18 +26,30 @@ export const pollSchema = z.object({
   myOptionId: z.string().nullable(),
 })
 
+// A quack that starts a conversation, or a reply (parentId set). A deleted
+// quack that still has replies comes back as a placeholder: isDeleted, with
+// no text, author, mood or poll (docs/adr/0002).
 export const quackSchema = z.object({
   id: z.string(),
-  text: z.string(),
+  text: z.string().nullable(),
   mood: quackMoodSchema.nullable(),
-  userId: z.string(),
+  userId: z.string().nullable(),
   createdAt: z.coerce.date(),
-  user: quackUserSchema,
+  user: quackUserSchema.nullable(),
   poll: pollSchema.nullable(),
+  isDeleted: z.boolean(),
+  parentId: z.string().nullable(),
+  // The conversation a reply belongs to; user is null when its start was deleted.
+  root: z.object({ id: z.string(), user: quackUserSchema.nullable() }).nullable(),
+  // Who a reply answers; null for a conversation start or a deleted parent.
+  replyTo: quackUserSchema.nullable(),
+  // Replies in the conversation this quack starts, deleted ones not counted.
+  replyCount: z.number().int().nonnegative(),
 })
 
 export const quacksSchema = z.array(quackSchema)
 
 export type Quack = z.infer<typeof quackSchema>
+export type QuackUser = z.infer<typeof quackUserSchema>
 export type Poll = z.infer<typeof pollSchema>
 export type { QuackMood } from "@/lib/moods"

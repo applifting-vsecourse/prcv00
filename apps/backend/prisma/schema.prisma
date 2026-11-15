@@ -31,21 +31,48 @@ enum QuackMood {
   @@map("quack_mood")
 }
 
+// A quack that starts a conversation, or a reply (parentId set). Deleting one
+// that has replies leaves an empty placeholder: see docs/adr/0002. Every
+// column is either content (cleared on a placeholder, and listed in the
+// quack_placeholder_empty_check constraint) or position (kept).
 model Quack {
   id        String     @id @default(cuid())
-  text      String     @db.Text
+  // Content. null only on a placeholder.
+  text      String?    @db.Text
+  // Content.
   mood      QuackMood?
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String
+  // Content. null on a placeholder. SetNull: removing a user must never
+  // cascade through other people's replies.
+  user      User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId    String?
   createdAt DateTime   @default(now())
   updatedAt DateTime   @default(now()) @updatedAt
+  // Content: deleted when a placeholder is made.
   poll      Poll?
-  // Derived from `text` when the quack is posted (lowercase, each once); see
-  // extractHashtags. Quacks can't be edited, so it never goes stale.
+  // Content. Derived from `text` when the quack is posted (lowercase, each
+  // once); see extractHashtags and docs/adr/0001. Cleared together with text.
   hashtags  String[]   @default([])
+  // Set when the content was cleared. The row lives only while something
+  // still replies to it; the delete removes it as soon as nothing does.
+  deletedAt DateTime?
+
+  // The quack this one answers; null for a quack that starts a conversation.
+  // Restrict: the database refuses a hard delete that would take replies with it.
+  parent   Quack?  @relation("QuackReplies", fields: [parentId], references: [id], onDelete: Restrict)
+  parentId String?
+  replies  Quack[] @relation("QuackReplies")
+
+  // The quack that started the conversation. Written once when the reply is
+  // posted (parent.rootId ?? parent.id) and never changed, because replies are
+  // never moved, so a whole conversation is one indexed query.
+  root   Quack?  @relation("QuackThread", fields: [rootId], references: [id], onDelete: Restrict)
+  rootId String?
+  thread Quack[] @relation("QuackThread")
 
   @@index([userId])
   @@index([hashtags], type: Gin)
+  @@index([parentId])
+  @@index([rootId, createdAt])
   @@map("quack")
 }
 

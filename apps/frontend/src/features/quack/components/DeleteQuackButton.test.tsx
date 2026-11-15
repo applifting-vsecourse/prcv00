@@ -3,6 +3,8 @@ import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+import { CONVERSATION_START } from "@/test/quackFixtures"
+
 import { deleteQuack } from "@/features/quack/api/deleteQuack"
 import { quackKeys } from "@/features/quack/api/quackKeys"
 import type { Quack } from "@/features/quack/api/quackSchemas"
@@ -18,6 +20,7 @@ const aQuack = (id: string, text: string, userId: string, name = userId): Quack 
   userId,
   createdAt: new Date("2026-10-20T12:00:00Z"),
   user: { id: userId, name, username: userId },
+  ...CONVERSATION_START,
   poll: null,
 })
 
@@ -44,15 +47,16 @@ function Feed({ isAdmin }: { isAdmin: boolean }) {
   )
 }
 
-const renderFeed = ({ isAdmin = false } = {}) => {
+const renderFeed = ({
+  isAdmin = false,
+  quacks = [
+    aQuack("q1", "my first quack", "me"),
+    aQuack("q2", "someone else's quack", "jane", "Jane Doe"),
+    aQuack("q3", "my second quack", "me"),
+  ],
+}: { isAdmin?: boolean; quacks?: Quack[] } = {}) => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  queryClient.setQueryData<QuacksData>(listKey, {
-    quacks: [
-      aQuack("q1", "my first quack", "me"),
-      aQuack("q2", "someone else's quack", "jane", "Jane Doe"),
-      aQuack("q3", "my second quack", "me"),
-    ],
-  })
+  queryClient.setQueryData<QuacksData>(listKey, { quacks })
   render(
     <QueryClientProvider client={queryClient}>
       <Feed isAdmin={isAdmin} />
@@ -100,6 +104,25 @@ describe("Deleting a quack", () => {
     await waitFor(() =>
       expect(screen.getByText("someone else's quack").closest("article")).toHaveFocus(),
     )
+  })
+
+  it("keeps a quack that has replies in the feed, as deleted, with the focus on it", async () => {
+    vi.mocked(deleteQuack).mockResolvedValue(undefined)
+    renderFeed({
+      quacks: [
+        { ...aQuack("q1", "my quack with replies", "me"), replyCount: 2 },
+        aQuack("q2", "someone else's quack", "jane", "Jane Doe"),
+      ],
+    })
+
+    await userEvent.click(deleteButtonOf("my quack with replies"))
+    await confirm("Delete")
+
+    await waitFor(() => expect(screen.queryByText("my quack with replies")).not.toBeInTheDocument())
+    const marker = screen.getByText("This quack was deleted.").closest("article")
+    expect(marker).not.toBeNull()
+    expect(within(marker!).queryByRole("button")).toBeNull()
+    await waitFor(() => expect(marker).toHaveFocus())
   })
 
   it("changes nothing when I keep it", async () => {

@@ -23,9 +23,10 @@ type DeleteQuackButtonProps = {
   author?: { name: string; username: string }
 }
 
-// The quack this button sits in vanishes on success, taking focus with it.
-// Move it to the next quack (or the previous one, or the page heading) so a
-// keyboard user carries on from where they were.
+// The button vanishes on success, taking focus with it. A quack with replies
+// stays as "This quack was deleted": focus stays on it. Otherwise the quack
+// is gone: move focus to the next quack (or the previous one, or the page
+// heading) so a keyboard user carries on from where they were.
 function focusAfterRemoval(trigger: HTMLElement | null) {
   const article = trigger?.closest("article")
   const articles = article?.parentElement
@@ -36,9 +37,11 @@ function focusAfterRemoval(trigger: HTMLElement | null) {
     articles[index + 1] ?? articles[index - 1] ?? document.querySelector<HTMLElement>("main h1")
   return () =>
     setTimeout(() => {
-      if (!(target instanceof HTMLElement) || document.activeElement !== document.body) return
-      target.tabIndex = -1
-      target.focus()
+      if (document.activeElement !== document.body) return
+      const stayed = article?.isConnected ? article : target
+      if (!(stayed instanceof HTMLElement)) return
+      stayed.tabIndex = -1
+      stayed.focus()
     })
 }
 
@@ -84,8 +87,8 @@ export function DeleteQuackButton({ quackId, author }: DeleteQuackButtonProps) {
                 : "Delete this quack?"}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              It disappears from the feed for everyone, with any question and votes on it. This
-              can&apos;t be undone.
+              Its text, question and votes disappear for everyone. Replies to it stay, under
+              &ldquo;This quack was deleted&rdquo;. This can&apos;t be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

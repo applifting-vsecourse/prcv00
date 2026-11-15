@@ -1,9 +1,11 @@
 // Example unit test — the pattern to copy for your own services.
 // The repository is mocked, so the test exercises the service in isolation.
 import {
+  InvalidReplyError,
   NotQuackAuthorError,
   Quack,
   QuackNotFoundError,
+  ReplyToDeletedQuackError,
 } from '@/modules/quack/domain/quack';
 import { QuackRepository } from '@/modules/quack/repositories/quack.repository';
 import { Identity } from '@/shared/auth/domain/identity';
@@ -21,6 +23,11 @@ const aQuack = (overrides: Partial<Quack> = {}): Quack => ({
   updatedAt: new Date('2026-01-01T12:00:00Z'),
   user: { id: 'u1', name: 'Caffeinated Duck', username: 'CaffeinatedDuck' },
   poll: null,
+  isDeleted: false,
+  parentId: null,
+  root: null,
+  replyTo: null,
+  replyCount: 0,
   ...overrides,
 });
 
@@ -174,6 +181,74 @@ describe('QuacksService', () => {
       'vse',
       'pond',
     ]);
+  });
+
+  describe('replies', () => {
+    const author = { id: 'u2' } as Identity;
+
+    it('creates a reply owned by the signed-in user, with its hashtags', async () => {
+      const repository = mock<QuackRepository>();
+      const reply = aQuack({ id: 'r1', parentId: 'q1' });
+      repository.createReply.mockResolvedValue(reply);
+
+      await expect(
+        new QuacksService(repository).createQuack(author, {
+          text: 'Agreed #pond',
+          mood: null,
+          poll: null,
+          parentId: 'q1',
+        }),
+      ).resolves.toBe(reply);
+      expect(repository.createReply).toHaveBeenCalledWith({
+        parentId: 'q1',
+        text: 'Agreed #pond',
+        userId: 'u2',
+        hashtags: ['pond'],
+      });
+      expect(repository.createQuack).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['a mood', { mood: 'happy' as const, poll: null }],
+      ['a poll', { mood: null, poll: { options: ['a', 'b'] } }],
+    ])('refuses a reply with %s and stores nothing', async (_label, extra) => {
+      const repository = mock<QuackRepository>();
+
+      await expect(
+        new QuacksService(repository).createQuack(author, {
+          text: 'Agreed',
+          parentId: 'q1',
+          ...extra,
+        }),
+      ).rejects.toBeInstanceOf(InvalidReplyError);
+      expect(repository.createReply).not.toHaveBeenCalled();
+      expect(repository.createQuack).not.toHaveBeenCalled();
+    });
+
+    it('lets the repository refuse a reply to a deleted quack', async () => {
+      const repository = mock<QuackRepository>();
+      repository.createReply.mockRejectedValue(new ReplyToDeletedQuackError());
+
+      await expect(
+        new QuacksService(repository).createQuack(author, {
+          text: 'Agreed',
+          mood: null,
+          poll: null,
+          parentId: 'q1',
+        }),
+      ).rejects.toBeInstanceOf(ReplyToDeletedQuackError);
+    });
+
+    it('reads a conversation for the viewer', async () => {
+      const repository = mock<QuackRepository>();
+      const conversation = [aQuack(), aQuack({ id: 'r1', parentId: 'q1' })];
+      repository.getConversation.mockResolvedValue(conversation);
+
+      await expect(
+        new QuacksService(repository).getConversation(viewer, 'r1'),
+      ).resolves.toBe(conversation);
+      expect(repository.getConversation).toHaveBeenCalledWith('r1', 'viewer-1');
+    });
   });
 
   describe('hashtag filter', () => {

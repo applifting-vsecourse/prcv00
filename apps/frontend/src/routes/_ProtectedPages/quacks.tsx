@@ -95,6 +95,7 @@ function QuacksPage() {
               onWriteFirst={() => newQuackRef.current?.focus()}
               currentUserId={user?.id}
               isAdmin={user?.role === "admin"}
+              hasConversationLinks
             />
           </TabsContent>
         </Tabs>

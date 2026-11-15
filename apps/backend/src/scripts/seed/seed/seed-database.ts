@@ -209,9 +209,12 @@ Please stop tagging me.`,
   ];
 
   const now = Date.now();
+  const minutesAgoDate = (minutes: number): Date =>
+    new Date(now - minutes * MINUTE_IN_MS);
+  const seeded: Awaited<ReturnType<typeof createQuack>>[] = [];
 
   for (const { author, minutesAgo, mood, text, poll } of exampleQuacks) {
-    await createQuack(prisma, {
+    const quack = await createQuack(prisma, {
       text,
       mood,
       userId: author.id,
@@ -225,5 +228,30 @@ Please stop tagging me.`,
         })),
       },
     });
+    seeded.push(quack);
   }
+
+  console.log('Creating an example conversation');
+
+  // Replies to the newest quack, one of them answering a reply, so a fresh
+  // database shows a conversation two levels deep.
+  const bread = seeded[seeded.length - 1];
+  const critique = await createQuack(prisma, {
+    text: 'Spoken to how? The swan does not accept criticism. I have tried. #BreadReview',
+    userId: breadCritic.id,
+    createdAt: minutesAgoDate(15),
+    replyTo: bread,
+  });
+  await createQuack(prisma, {
+    text: 'It hissed at me for reviewing its crust. 2/10, would not approach again.',
+    userId: caffeinatedDuck.id,
+    createdAt: minutesAgoDate(10),
+    replyTo: critique,
+  });
+  await createQuack(prisma, {
+    text: 'Firmly. With a leaflet. Please keep this thread civil.',
+    userId: pondAdmin.id,
+    createdAt: minutesAgoDate(5),
+    replyTo: bread,
+  });
 };

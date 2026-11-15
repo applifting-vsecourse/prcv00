@@ -26,6 +26,8 @@ type QuackListProps = {
   // The hashtag these quacks were filtered by ("vse", no "#").
   tag?: string
   onClearTag?: () => void
+  // Each quack links to its conversation (needs the app's router).
+  hasConversationLinks?: boolean
 }
 
 export function QuackList({
@@ -41,6 +43,7 @@ export function QuackList({
   onWriteFirst,
   tag,
   onClearTag,
+  hasConversationLinks,
 }: QuackListProps) {
   const highlight = rawSearch ? toMatchTerm(rawSearch) : ""
   // A lone "@" filters nothing on the server, so it is not a search here either.
@@ -126,7 +129,9 @@ export function QuackList({
 
       {isEmpty && !search && !tag && isMine ? (
         <div className="flex flex-col items-center gap-3 py-8">
-          <p className="text-sm text-muted-foreground">You haven&apos;t posted any quacks yet.</p>
+          <p className="text-sm text-muted-foreground">
+            You haven&apos;t posted any quacks or replies yet.
+          </p>
           {onWriteFirst ? (
             <Button
               variant="outline"
@@ -152,6 +157,7 @@ export function QuackList({
           highlight={highlight || undefined}
           currentUserId={currentUserId}
           isAdmin={isAdmin}
+          hasConversationLinks={hasConversationLinks}
         />
       ))}
     </div>

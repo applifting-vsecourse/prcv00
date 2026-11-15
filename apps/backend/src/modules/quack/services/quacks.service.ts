@@ -3,6 +3,7 @@ import {
   normalizeHashtag,
 } from '@/modules/quack/domain/hashtag';
 import {
+  InvalidReplyError,
   NotQuackAuthorError,
   Quack,
   QuackMood,
@@ -42,14 +43,32 @@ export class QuacksService {
     });
   }
 
+  // The whole conversation `quackId` belongs to, oldest first.
+  async getConversation(viewer: Identity, quackId: string): Promise<Quack[]> {
+    return this.quackRepository.getConversation(quackId, viewer.id);
+  }
+
   async createQuack(
     user: Identity,
     quackData: {
       text: string;
       mood: QuackMood | null;
       poll: { options: string[] } | null;
+      // Set for a reply: the quack (or reply) it answers.
+      parentId?: string | null;
     },
   ): Promise<Quack> {
+    if (quackData.parentId) {
+      // A reply is text only (replies story, decision 9).
+      if (quackData.mood || quackData.poll) throw new InvalidReplyError();
+      return this.quackRepository.createReply({
+        parentId: quackData.parentId,
+        text: quackData.text,
+        userId: user.id,
+        hashtags: extractHashtags(quackData.text),
+      });
+    }
+
     return this.quackRepository.createQuack({
       text: quackData.text,
       mood: quackData.mood,
@@ -62,7 +81,11 @@ export class QuacksService {
     });
   }
 
+  // Without replies the quack is gone; with replies only its content and
+  // author are (a placeholder). The repository decides which, in one
+  // transaction (docs/adr/0002).
   async deleteQuack(user: Identity, quackId: string): Promise<void> {
+    // null also for a placeholder: it has no author, so it can't be deleted.
     const authorId = await this.quackRepository.findAuthorId(quackId);
     if (!authorId) throw new QuackNotFoundError(quackId);
 

@@ -3,6 +3,8 @@ import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+import { CONVERSATION_START } from "@/test/quackFixtures"
+
 import { PollClosedError } from "@/features/quack/api/pollErrors"
 import { closePoll, votePoll, withdrawVote } from "@/features/quack/api/polls"
 import { quackKeys } from "@/features/quack/api/quackKeys"
@@ -57,6 +59,7 @@ const renderPoll = (poll: Poll, { isAuthor = false } = {}) => {
     userId: "author",
     createdAt: new Date("2026-10-18T12:00:00Z"),
     user: { id: "author", name: "Pond Admin", username: "PondAdmin" },
+    ...CONVERSATION_START,
     poll,
   }
   queryClient.setQueryData(listKey, { search: undefined, quacks: [quack] })

@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import type { QuackMood } from "@/lib/moods"
+import { CONVERSATION_START } from "@/test/quackFixtures"
 
 import { addQuack } from "@/features/quack/api/addQuack"
 import { QuackForm } from "@/features/quack/components/QuackForm"
@@ -19,6 +20,7 @@ beforeEach(() => {
     userId: "u1",
     createdAt: new Date(),
     user: { id: "u1", name: "Caffeinated Duck", username: "CaffeinatedDuck" },
+    ...CONVERSATION_START,
     poll: null,
   })
 })
@@ -145,6 +147,7 @@ describe("QuackForm", () => {
               userId: "u1",
               createdAt: new Date(),
               user: { id: "u1", name: "Caffeinated Duck", username: "CaffeinatedDuck" },
+              ...CONVERSATION_START,
               poll: null,
             })
         }),

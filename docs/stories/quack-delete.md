@@ -23,6 +23,7 @@ All checked while signed in.
 8. Clicking Delete asks me to confirm first: "Delete this quack?" with "Keep it" and "Delete". "Keep it" changes nothing.
 9. After I confirm, the quack disappears from the feed on both tabs, also from the results of a search I'm in.
 10. If the quack had a question with answers, the question and its votes go too.
+    _Changed by [replies](quack-replies.md):_ if other people have replied to the quack, its replies stay, and in its place there is only "This quack was deleted", with no text, name, question or votes.
 11. If deleting fails, the quack stays and a message under it says it couldn't be deleted and to try again.
 12. Nobody can delete someone else's quack, not even by sending the request to the server directly.
 13. If the quack was already deleted (for example from another browser tab), deleting it again just removes it from the feed, without an error.

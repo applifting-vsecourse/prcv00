@@ -5,10 +5,11 @@ import { signIn } from "./signIn"
 const API = "http://localhost:4050/api"
 
 async function findQuackNotBy(page: Page, username: string): Promise<{ id: string }> {
-  const quacks: { id: string; user: { username: string } }[] = await (
+  const quacks: { id: string; user: { username: string } | null }[] = await (
     await page.request.get(`${API}/quacks`)
   ).json()
-  return quacks.find((quack) => quack.user.username !== username)!
+  // A deleted quack has no author, so it is nobody's to delete.
+  return quacks.find((quack) => quack.user && quack.user.username !== username)!
 }
 
 test("author can post a quack and delete it", async ({ page }) => {
@@ -113,4 +114,88 @@ test("nobody can delete someone else's quack", async ({ page }) => {
   const notMine = await findQuackNotBy(page, "DeepDuckThoughts")
   const response = await page.request.delete(`${API}/quacks/${notMine.id}`)
   expect(response.status()).toBe(403)
+})
+
+type ApiQuack = { id: string; text: string | null; user: unknown; isDeleted: boolean }
+
+test("deleting a quack with replies keeps the replies and removes its content everywhere", async ({
+  browser,
+}) => {
+  const stamp = Date.now()
+  const text = `Bread meeting ${stamp}`
+  const replyText = `Count me in ${stamp}`
+  // One page holds one session, so the author and the replier each get their own.
+  const author = await browser.newPage()
+  await signIn(author, "caffeinatedduck@example.com", "password1")
+  const replier = await browser.newPage()
+  await signIn(replier, "deepduckthoughts@example.com", "password2")
+
+  await author.goto("/quacks")
+  await author.getByLabel("New quack").fill(text)
+  await author.getByRole("button", { name: "Quack", exact: true }).click()
+  const quack = author.getByRole("article").filter({ hasText: text })
+  await expect(quack).toBeVisible()
+  const mine = (await (await author.request.get(`${API}/quacks?mine=true`)).json()) as ApiQuack[]
+  const { id } = mine.find((q) => q.text === text)!
+
+  // Someone else replies on the conversation page.
+  await replier.goto(`/quacks/${id}`)
+  await replier.getByRole("textbox", { name: "Reply to @CaffeinatedDuck" }).fill(replyText)
+  const posted = replier.waitForResponse(
+    (response) => response.request().method() === "POST" && response.url().endsWith("/quacks"),
+  )
+  await replier.getByRole("button", { name: "Reply", exact: true }).click()
+  expect((await posted).status()).toBe(201)
+  await expect(replier.getByText(replyText)).toBeVisible()
+
+  // The feed counts the reply on the quack; the reply itself stays off the feed.
+  await author.reload()
+  await expect(quack.getByRole("link", { name: "1 reply" })).toBeVisible()
+  await expect(author.getByRole("article").filter({ hasText: replyText })).toHaveCount(0)
+
+  // The author deletes the quack.
+  const deleted = author.waitForResponse(
+    (response) =>
+      response.request().method() === "DELETE" && response.url().endsWith(`/quacks/${id}`),
+  )
+  await quack.getByRole("button", { name: "Delete quack" }).click()
+  await author.getByRole("alertdialog").getByRole("button", { name: "Delete" }).click()
+  expect((await deleted).status()).toBe(204)
+  await expect(quack).toHaveCount(0)
+
+  // The reply stays in the conversation, under an empty marker.
+  await replier.reload()
+  await expect(replier.getByText("This quack was deleted.")).toBeVisible()
+  await expect(replier.getByText(replyText)).toBeVisible()
+  await expect(replier.getByText(text)).toHaveCount(0)
+
+  // Deleted means deleted everywhere, also when asking the server directly.
+  const conversation = (await (
+    await replier.request.get(`${API}/quacks/${id}/conversation`)
+  ).json()) as ApiQuack[]
+  expect(conversation.find((q) => q.id === id)).toMatchObject({
+    text: null,
+    user: null,
+    isDeleted: true,
+  })
+  const found = (await (
+    await replier.request.get(`${API}/quacks?q=${encodeURIComponent(text)}`)
+  ).json()) as ApiQuack[]
+  expect(found).toHaveLength(0)
+  // Nobody can reply to it or delete it again.
+  const lateReply = await replier.request.post(`${API}/quacks`, {
+    data: { text: "late", parentId: id },
+  })
+  expect(lateReply.status()).toBe(409)
+  expect((await author.request.delete(`${API}/quacks/${id}`)).status()).toBe(404)
+
+  // Deleting the last reply takes the marker, and so the conversation, with it.
+  const replyId = conversation.find((q) => q.text === replyText)!.id
+  expect((await replier.request.delete(`${API}/quacks/${replyId}`)).status()).toBe(204)
+  expect((await replier.request.get(`${API}/quacks/${id}/conversation`)).status()).toBe(404)
+  await replier.reload()
+  await expect(replier.getByText("This conversation no longer exists.")).toBeVisible()
+
+  await author.close()
+  await replier.close()
 })
